@@ -4,7 +4,7 @@ Azure (ARM) DNS State Module
 
 .. versionadded:: Fluorine
 
-:maintainer: <devops@decisionlab.io>
+:maintainer: <devops@eitr.tech>
 :maturity: new
 :depends:
     * `azure <https://pypi.python.org/pypi/azure>`_ >= 2.0.0

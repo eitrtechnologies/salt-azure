@@ -4,7 +4,7 @@ Azure (ARM) DNS Execution Module
 
 .. versionadded:: Fluorine
 
-:maintainer: <nicholasmhughes@gmail.com>
+:maintainer: <devops@eitr.tech>
 :maturity: new
 :depends:
     * `azure <https://pypi.python.org/pypi/azure>`_ >= 2.0.0
