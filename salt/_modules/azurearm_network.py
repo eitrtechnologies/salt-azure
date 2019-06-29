@@ -2749,3 +2749,115 @@ def route_tables_list_all(**kwargs):
         result = {'error': str(exc)}
 
     return result
+
+
+def virtual_network_gateway_connection_create_or_update(**kwargs):
+    pass
+
+
+def virtual_network_gateway_connection_get(**kwargs):
+    pass
+
+
+def virtual_network_gateway_connection_delete(**kwargs):
+    pass
+
+
+def virtual_network_gateway_connection_set_shared_key(**kwargs):
+    pass
+
+
+def virtual_network_gateway_connection_get_shared_key(**kwargs):
+    pass
+
+
+def virtual_network_gateway_connection_reset_shared_key(**kwargs):
+    pass
+
+
+def virtual_network_gateway_connections_list(**kwargs):
+    pass
+
+
+def virtual_network_gateways_list(**kwargs):
+    pass
+
+
+def virtual_network_gateway_create_or_update(**kwargs):
+    pass
+
+
+def virtual_network_gateway_get(**kwargs):
+    pass
+
+
+def virtual_network_gateway_delete(**kwargs):
+    pass
+
+
+def virtual_network_gateway_list_connections(**kwargs):
+    pass
+
+
+def virtual_network_gateway_reset(**kwargs):
+    pass
+
+
+def virtual_network_gateway_reset_vpn_client_shared_key(**kwargs):
+    pass
+
+
+def virtual_network_gateway_generatevpnclientpackage(**kwargs):
+    pass
+
+
+def virtual_network_gateway_generate_vpn_profile(**kwargs):
+    pass
+
+
+def virtual_network_gateway_get_vpn_profile_package_url(**kwargs):
+    pass
+
+
+def virtual_network_gateway_get_bgp_peer_status(**kwargs):
+    pass
+
+
+def virtual_network_gateway_supported_vpn_devices(**kwargs):
+    pass
+
+
+def virtual_network_gateway_get_learned_routes(**kwargs):
+    pass
+
+
+def virtual_network_gateway_get_advertised_routes(**kwargs):
+    pass
+
+
+def virtual_network_gateway_set_vpnclient_ipsec_parameters(**kwargs):
+    pass
+
+
+def virtual_network_gateway_get_vpnclient_ipsec_parameters(**kwargs):
+    pass
+
+
+def virtual_network_gateway_vpn_device_configuration_script(**kwargs):
+    pass
+
+
+def virtual_network_peerings_list(**kwargs):
+    pass
+
+
+def virtual_network_peering_delete(**kwargs):
+    pass
+
+
+def virtual_network_peering_get(**kwargs):
+    pass
+
+
+def virtual_network_peering_create_or_update(**kwargs):
+    pass
