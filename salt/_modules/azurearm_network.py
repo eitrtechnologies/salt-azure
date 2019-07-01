@@ -2847,17 +2847,180 @@ def virtual_network_gateway_vpn_device_configuration_script(**kwargs):
     pass
 
 
-def virtual_network_peerings_list(**kwargs):
-    pass
+def virtual_network_peerings_list(virtual_network, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    List all peerings associated with a virtual network.
+
+    :param virtual_network: The virtual network name for which to list peerings.
+
+    :param resource_group: The resource group name for the virtual network.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_peerings_list testnet testgroup
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        peerings = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_peerings.list(
+                resource_group_name=resource_group,
+                virtual_network_name=virtual_network
+            )
+        )
+
+        for peering in peerings:
+            result[peering['name']] = peering
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
-def virtual_network_peering_delete(**kwargs):
-    pass
+def virtual_network_peering_delete(name, virtual_network, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Delete a virtual network peering object.
+
+    :param name: The name of the virtual network peering object to delete.
+
+    :param virtual_network: The virtual network name containing the
+        peering object.
+
+    :param resource_group: The resource group name assigned to the
+        virtual network.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_peering_delete peer1 testnet testgroup
+
+    '''
+    result = False
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        peering = netconn.virtual_network_peerings.delete(
+            resource_group_name=resource_group,
+            virtual_network_name=virtual_network,
+            virtual_network_peering_name=name
+        )
+        peering.wait()
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+
+    return result
 
 
-def virtual_network_peering_get(**kwargs):
-    pass
+def virtual_network_peering_get(name, virtual_network, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Get details about a specific virtual network peering object.
+
+    :param name: The name of the virtual network peering to query.
+
+    :param virtual_network: The virtual network name containing the
+        peering object.
+
+    :param resource_group: The resource group name assigned to the
+        virtual network.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_peering_get peer1 testnet testgroup
+
+    '''
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        peering = netconn.virtual_network_peerings.get(
+            resource_group_name=resource_group,
+            virtual_network_name=virtual_network,
+            virtual_network_peering_name=name
+        )
+
+        result = peering.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
-def virtual_network_peering_create_or_update(**kwargs):
-    pass
+def virtual_network_peering_create_or_update(name, remote_virtual_network, virtual_network, resource_group,
+                                             remote_vnet_group=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Create or update a virtual network peering object.
+
+    :param name: The name assigned to the peering object being created or updated.
+
+    :param remote_virtual_network: A valid name of a virtual network with which to peer.
+
+    :param remote_vnet_group: The resource group of the remote virtual network. Defaults to
+        the same resource group as the "local" virtual network.
+
+    :param virtual_network: The virtual network name containing the
+        peering object.
+
+    :param resource_group: The resource group name assigned to the
+        virtual network.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_peering_create_or_update peer1 \
+                  remotenet testnet testgroup remote_vnet_group=remotegroup
+
+    '''
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+
+    # Use Remote Virtual Network name to link to the ID of an existing object
+    remote_vnet = virtual_network_get(
+        name=remote_virtual_network,
+        resource_group=(remote_vnet_group or resource_group),
+        **kwargs
+    )
+    if 'error' not in remote_vnet:
+        remote_virtual_network = {'id': str(remote_vnet['id'])}
+
+    try:
+        peermodel = __utils__['azurearm.create_object_model'](
+            'network',
+            'VirtualNetworkPeering',
+            remote_virtual_network=remote_virtual_network,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        peering = netconn.virtual_network_peerings.create_or_update(
+            resource_group_name=resource_group,
+            virtual_network_name=virtual_network,
+            virtual_network_peering_name=name,
+            virtual_network_peering_parameters=peermodel
+        )
+        peering.wait()
+        peer_result = peering.result()
+        result = peer_result.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
