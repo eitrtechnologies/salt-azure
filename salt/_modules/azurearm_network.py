@@ -2779,8 +2779,37 @@ def virtual_network_gateway_connections_list(**kwargs):
     pass
 
 
-def virtual_network_gateways_list(**kwargs):
-    pass
+def virtual_network_gateways_list(resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    List all virtual network gateways in a resource group.
+
+    :param resource_group: The resource group name for the virtual network gateway.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateways_list testgroup
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        gateways = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_gateways.list(
+                resource_group_name=resource_group
+            )
+        )
+
+        for gateway in gateways:
+            result[gateway['name']] = gateway
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
 def virtual_network_gateway_create_or_update(**kwargs):
