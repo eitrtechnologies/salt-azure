@@ -2751,7 +2751,26 @@ def route_tables_list_all(**kwargs):
     return result
 
 
-def virtual_network_gateway_connection_create_or_update(**kwargs):
+def virtual_network_gateway_connection_create_or_update(resource_group, virtual_network_gateway_connection, parameters, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Creates or updates a virtual network gateway connection in the specified resource group.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway_connection: The name of the virtual network gateway connection.
+
+    :param parameters: Parameters supplied to the create or update virtual network gateway connection operation.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_group \
+                  test_net_gw_connection test_params
+
+    '''
     pass
 
 
@@ -2769,7 +2788,7 @@ def virtual_network_gateway_connection_get(resource_group, virtual_network_gatew
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_connection_get testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_gateway_connection_get test_group test_net_gw
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -2787,35 +2806,173 @@ def virtual_network_gateway_connection_get(resource_group, virtual_network_gatew
     return result
 
 
-def virtual_network_gateway_connection_delete(**kwargs):
-    pass
+def virtual_network_gateway_connection_delete(resource_group, virtual_network_gateway_connection, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Deletes the specified virtual network gateway connection.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway_connection: The name of the virtual network gateway 
+        connection that will be deleted.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_connection_delete test_group \
+                  test_net_gw_connetion
+
+    '''
+    result = False
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        connection = netconn.virtual_network_gateway_connections.delete(
+            resource_group_name=resource_group,
+            virtual_network_gateway_connection_name=virtual_network_gateway_connection
+        )
+        connection.wait()
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+
+    return result
 
 
-def virtual_network_gateway_connection_set_shared_key(**kwargs):
-    pass
+def virtual_network_gateway_connection_set_shared_key(resource_group, virtual_network_gateway_connection, value, id=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Sets the virtual network gateway connection shared key for passed virtual network gateway
+        connection in the specified resource group through Network resource provider.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway_connection: The virtual network gateway connection name.
+
+    :param value: The virtual network connection shared key value.
+
+    :param id: Resource ID. Defaults to None.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_connection_set_shared_key test_group \
+		  test_net_gw_connection test_value
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        key = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_gateway_connections.set_shared_key(
+                resource_group_name=resource_group,
+                virtual_network_gateway_connection_name=virtual_network_gateway_connection,
+                value=value,
+                id=id
+            )
+        )
+
+        key_result = key.result()
+        result = key_result
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
-def virtual_network_gateway_connection_get_shared_key(**kwargs):
-    pass
+def virtual_network_gateway_connection_get_shared_key(resource_group, virtual_network_gateway_connection, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets information about the specified virtual network gateway connection shared key through Network resource provider.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway_connection: The virtual network gateway connection shared key name.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_connection_get_shared_key test_group test_net_gw_connection
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        key = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_gateway_connections.get_shared_key(
+                resource_group_name=resource_group,
+                virtual_network_gateway_connection_name=virtual_network_gateway_connection
+            )
+        )
+
+        result = key
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
-def virtual_network_gateway_connection_reset_shared_key(**kwargs):
-    pass
+def virtual_network_gateway_connection_reset_shared_key(resource_group, virtual_network_gateway_connection, key_length, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Resets the virtual network gateway connection shared key for passed virtual network
+        gateway connection in the specified resource group through Network resource provider.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway_connection: The virtual network gateway connection reset shared key name.
+
+    :param key_length: The virtual network connection reset shared key length, should between 1 and 128.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_connection_set_shared_key test_group \
+		  test_net_gw_connection test_key_length
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        rkey = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_gateway_connections.reset_shared_key(
+                resource_group_name=resource_group,
+                virtual_network_gateway_connection_name=virtual_network_gateway_connection,
+                key_length=key_length
+            )
+        )
+
+        rkey_result = rkey.result()
+        result = rkey_result
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
 def virtual_network_gateway_connections_list(resource_group, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Lists all the virtual network gateways connections associated with a resource group.
+    Lists all the virtual network gateways connections created within a specified resource group.
 
-    :param resource_group: The resource group name of the virtual network gateways connections.
+    :param resource_group: The name of the resource group.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_connections_list testgroup
+        salt-call azurearm_network.virtual_network_gateway_connections_list test_group
 
     '''
     result = {}
@@ -2840,15 +2997,15 @@ def virtual_network_gateways_list(resource_group, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    List all virtual network gateways in a resource group.
+    Lists all virtual network gateways within a resource group.
 
-    :param resource_group: The resource group name for the virtual network gateways.
+    :param resource_group: The name of the resource group.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateways_list testgroup
+        salt-call azurearm_network.virtual_network_gateways_list test_group
 
     '''
     result = {}
@@ -2869,26 +3026,46 @@ def virtual_network_gateways_list(resource_group, **kwargs):
     return result
 
 
-def virtual_network_gateway_create_or_update(**kwargs):
+def virtual_network_gateway_create_or_update(resource_group, virtual_network_gateway, parameters, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Creates or updates a virtual network gateway in the specified resource group.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway: The name of the virtual network gateway.
+
+    :param parameters: Parameters supplied to create or update virtual network gateway operation.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_peering_create_or_update test_group \
+                  test_net_gw test_params
+
+    '''
+    '''netconn = __utils__['azurearm.get_client']('network', **kwargs)'''
     pass
+
 
 
 def virtual_network_gateway_get(resource_group, virtual_network_gateway, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Get details about a specific virtual network gateway object.
+    Gets the details of a specific virtual network gateway within a specified resource group.
 
-    :param resource_group: The resource group name assigned to the                                                                                                virtual network gateway. 
+    :param resource_group: The name of the resource group. 
 
-    :param virtual_network_gateway: The name of the virtual network 
-        gateway to query.
+    :param virtual_network_gateway: The name of the virtual network gateway.
 
     CLI Example:
     
     .. code-block:: bash
         
-        salt-call azurearm_network.virtual_network_gateway_get testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_gateway_get test_group test_net_gw
     
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -2906,25 +3083,54 @@ def virtual_network_gateway_get(resource_group, virtual_network_gateway, **kwarg
     return result 
 
 
-def virtual_network_gateway_delete(**kwargs):
-    pass
+def virtual_network_gateway_delete(resource_group, virtual_network_gateway, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Deletes the specified virtual network gateway.
+
+    :param resource_group: The name of the resource group. 
+       
+    :param virtual_network_gateway: The name of the virtual network gateway 
+        that will be deleted.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_delete test_group test_net_gw
+    
+    '''
+    result = False
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        gateway = netconn.virtual_network_gateways.delete(
+            resource_group_name=resource_group,
+            virtual_network_gateway_name=virtual_network_gateway
+        )
+        gateway.wait()
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+
+    return result
 
 
 def virtual_network_gateway_list_connections(resource_group, virtual_network_gateway, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    List all connections associated with a virtual network gateway.
+    Lists all connections associated with a virtual network gateway.
 
-    :param resource_group: The resource group name for the virtual network gateway.
+    :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway: The virtual network gateway name for which to list connections.
+    :param virtual_network_gateway: The name of the virtual network gateway.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_list_connections testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_gateway_list_connections test_group test_net_gw
 
     '''
     result = {}
@@ -2945,19 +3151,129 @@ def virtual_network_gateway_list_connections(resource_group, virtual_network_gat
     return result
 
 
-def virtual_network_gateway_reset(**kwargs):
-    pass
+def virtual_network_gateway_reset(resource_group, virtual_network_gateway, gateway_vip=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Resets the primary of the virtual network gateway in the specified resource group.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway: The name of the virtual network gateway.
+
+    :param gateway_vip: Virtual network gateway vip address supplied to the begin 
+        reset of the active-active feature enabled gateway. Defaults to None.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_reset test_group test_net_gw
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        reset = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_gateways.reset(
+                resource_group_name=resource_group,
+                virtual_network_gateway_name=virtual_network_gateway,
+		gateway_vip=gateway_vip
+            )
+        )
+
+        reset_result = reset.result()
+        result = reset_result.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
-def virtual_network_gateway_reset_vpn_client_shared_key(**kwargs):
-    pass
+def virtual_network_gateway_reset_vpn_client_shared_key(resource_group, virtual_network_gateway, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Resets the VPN client shared key of the virtual network gateway in the specified resource group.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway: The name of the virtual network gateway.                                                                                                               
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_reset_vpn_client_shared_key testgroup test_net_gw
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        reset = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_gateways.reset_vpn_client_shared_key(
+                resource_group_name=resource_group,
+                virtual_network_gateway_name=virtual_network_gateway
+            )
+        )
+
+        reset_result = reset.result()
+        result = reset_result
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
 def virtual_network_gateway_generatevpnclientpackage(**kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Generates VPN client package for P2S client of the virtual network 
+        gateway in the specified resource group.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway: The name of the virtual network gateway.
+
+    :param parameters: Parameters supplied to the generate virtual network
+        gateway VPN client package operation.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_generate_vpn_profile test_group \
+                  test_net_gw test_params
+
+    '''
     pass
 
 
-def virtual_network_gateway_generate_vpn_profile(**kwargs):
+def virtual_network_gateway_generate_vpn_profile(resource_group, virtual_network_gateway, parameters, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Generates VPN profile for P2S client of the virtual network gateway in the 
+	specified resource group. Used for IKEV2 and radius based authentication.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway: The name of the virtual network gateway.
+
+    :param parameters: Parameters supplied to the generate virtual network gateway
+	VPN client package operation.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_generate_vpn_profile test_group \
+		  test_net_gw test_params
+
+    '''
     pass
 
 
@@ -2965,19 +3281,18 @@ def virtual_network_gateway_get_vpn_profile_package_url(resource_group, virtual_
     '''
     .. versionadded:: Sodium
 
-    Gets details about the pre-generated VPN profile for P2S client of the 
-        virtual network gateway in the specific resource group.
+    Gets pre-generated VPN profile for P2S client of the virtual network gateway in the 
+        specified resource group.
 
-    :param resource_group: The resource group name assigned to the                                                                                   virtual network gateway.
+    :param resource_group: The name of the resource group..
 
-    :param virtual_network_gateway: The name of the virtual network
-        gateway associated with the VPN profile.
+    :param virtual_network_gateway: The name of the virtual network gateway.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_vpn_profile_package_url testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_get_vpn_profile_package_url test_group test_net_gw
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -2995,28 +3310,31 @@ def virtual_network_gateway_get_vpn_profile_package_url(resource_group, virtual_
     return result
 
 
-def virtual_network_gateway_get_bgp_peer_status(resource_group, virtual_network_gateway, **kwargs):
+def virtual_network_gateway_get_bgp_peer_status(resource_group, virtual_network_gateway, peer=None, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Gets the status of all BGP peers.
 
-    :param resource_group: The resource group name assigned to the                                                                                   virtual network gateway.
-                                                                                                                                                 :param virtual_network_gateway: The name of the virtual network
-        gateway associated with the BGP peers
+    :param resource_group: The name of the resource group.
+    
+    :param virtual_network_gateway: The name of the virtual network gateway.
+
+    :param peer: The IP address of the peer to retrieve the status of.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_bgp_peer_status testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_get_bgp_peer_status test_group test_net_gw
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
         peers = netconn.virtual_network_gateways.get_bgp_peer_status(
             resource_group_name=resource_group,
-            virtual_network_gateway_name=virtual_network_gateway
+            virtual_network_gateway_name=virtual_network_gateway,
+            peer=peer
         )
 
         peers_result = peers.result()
@@ -3034,16 +3352,15 @@ def virtual_network_gateway_supported_vpn_devices(resource_group, virtual_networ
 
     Gets a xml format representation for supported vpn devices.
 
-    :param resource_group: The resource group name assigned to the                                                                                   virtual network gateway.
+    :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway: The name of the virtual network
-        gateway inquired about.
+    :param virtual_network_gateway: The name of the virtual network gateway.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_supported_vpn_devices testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_supported_vpn_devices test_group test_net_gw
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3060,6 +3377,7 @@ def virtual_network_gateway_supported_vpn_devices(resource_group, virtual_networ
 
     return result
 
+
 def virtual_network_gateway_get_learned_routes(resource_group, virtual_network_gateway, **kwargs):
     '''
     .. versionadded:: Sodium
@@ -3067,16 +3385,15 @@ def virtual_network_gateway_get_learned_routes(resource_group, virtual_network_g
     Gets a list of routes that the virtual network gateway has learned, 
         including routes learned from BGP peers.
 
-    :param resource_group: The resource group name assigned to the                                                                                   virtual network gateway.
+    :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway: The name of the virtual network
-        gateway inquired about.
+    :param virtual_network_gateway: The name of the virtual network gateway.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_learned_routes testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_get_learned_routes test_group test_net_gw
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3101,7 +3418,7 @@ def virtual_network_gateway_get_advertised_routes(resource_group, virtual_networ
 
     Gets a list of routes the virtual network gateway is advertising to a specified peer
 
-    :param resource_group: The resource group name assigned to the                                                                                   virtual network gateway.
+    :param resource_group: The name of the resource group.
 
     :param virtual_network_gateway: The name of the virtual network gateway.
 
@@ -3110,7 +3427,8 @@ def virtual_network_gateway_get_advertised_routes(resource_group, virtual_networ
     CLI Example:                                                                                                                             
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_learned_routes testgroup testnetgateway testpeer
+        salt-call azurearm_network.virtual_network_get_learned_routes test_group \
+		  test_net_gw test_peer
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3130,25 +3448,64 @@ def virtual_network_gateway_get_advertised_routes(resource_group, virtual_networ
     return result
 
 
-def virtual_network_gateway_set_vpnclient_ipsec_parameters(**kwargs):
-    pass
+def virtual_network_gateway_set_vpnclient_ipsec_parameters(resource_group, virtual_network_gateway, vpnclient_ipsec_params, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Sets the vpnclient ipsec policy for P2S client of virtual network gateway in the 
+        specified resource group through Network resource provider.
+
+    :param resource_group: The name of the resource group.
+
+    :param virtual_network_gateway: The name of the virtual network gateway.
+
+    :param vpnclient_ipsec_params: Parameters supplied to the Begin Set vpnclient ipsec parameters of
+        Virtual Network Gateway P2S client operation through Network resource provider.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_set_vpnclient_ipsec_parameters \
+                  test_group test_net_gw test_params
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        params = __utils__['azurearm.paged_object_to_list'](
+            netconn.virtual_network_gateways.set_vpnclient_ipsec_parameters(
+                resource_group_name=resource_group,
+                virtual_network_gateway_name=virtual_network_gateway,
+                vpnclient_ipsec_params=vpnclient_ipsec_params
+            )
+        )
+
+        params_result = params.result()
+        result = params_result.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
 
 
 def virtual_network_gateway_get_vpnclient_ipsec_parameters(resource_group, virtual_network_gateway, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Gets information about the vpnclient ipsec policy for P2S client of the specified
-        virtual network gateway in the specified resource group through Network resource provider.
+    Gets information about the vpnclient ipsec policy for P2S client of virtual network
+        gateway in the specified resource group through Network resource provider.
 
-    :param resource_group: The resource group name assigned to the                                                                                   virtual network gateway.
+    :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway: The name of the virtual network gateway to inquire about.
+    :param virtual_network_gateway: The virtual network gateway name.
 
     CLI Example:
     .. code-block:: bash
     
-        salt-call azurearm_network.virtual_network_get_vpnclient_ipsec_parameters testgroup testnetgateway
+        salt-call azurearm_network.virtual_network_get_vpnclient_ipsec_parameters \
+		  test_group test_net_gw
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3173,17 +3530,18 @@ def virtual_network_gateway_vpn_device_configuration_script(resource_group, virt
 
     Gets a xml format representation for vpn device configuration script.
 
-    :param resource_group: The resource group name assigned to the                                                                                   virtual network gateway.
+    :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway_connection: The name of the virtual network gateway connection
-        for which the configuration script is generated.
+    :param virtual_network_gateway_connection: The name of the virtual network gateway 
+        connection for which the configuration script is generated.
 
     :param parameters: Parameters supplied to the generate vpn device script operation.
 
     CLI Example:
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_vpn_device_configuration_script testgroup testnetgateway testparams
+        salt-call azurearm_network.virtual_network_vpn_device_configuration_script test_group \ 
+                  test_net_gw test_params
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
