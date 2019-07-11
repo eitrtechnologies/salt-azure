@@ -2761,18 +2761,59 @@ def virtual_network_gateway_connection_create_or_update(resource_group, virtual_
 
     :param virtual_network_gateway_connection: The name of the virtual network gateway connection.
 
-    :param parameters: Parameters supplied to the create or update virtual network gateway connection operation.
+    :param location: Resource location.
+
+    :param connection_type: Gateway connection type. Possible values include:
+        'IPsec', 'Vnet2Vnet', 'ExpressRoute', 'VPNClient'
+
+    :param virtual_network_gateway1: The reference to virtual network gateway resource.
+
+    :param virtual_network_gateway2: The reference to virtual network gateway resource. Depends on type of connection
+
+    :param local_network_gateway2: The reference to local network gateway resource. Depends on type of connection
+
+    :param shared_key: The IPSec shared key 
+
+    :param authorization_key: The authorizationKey.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_group \
-                  test_net_gw_connection test_params
+        salt-call azurearm_network.virtual_network_gateway_connection_create_or_update
 
     '''
     pass
+'''
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
 
+    try:
+        connectionmodel = __utils__['azurearm.create_object_model'](
+            'network',
+            'VirtualNetworkGatewayConnection',
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        connection = netconn.virtual_network_gateway_connections.create_or_update(
+            resource_group_name=resource_group,
+            virtual_network_gateway_connection_name=virtual_network_gateway_connection
+            parameters=connectionmodel
+        )
+        connection.wait()
+        connection_result = connection.result()
+        result = connection_result.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
+'''
 
 def virtual_network_gateway_connection_get(resource_group, virtual_network_gateway_connection, **kwargs):
     '''
@@ -2851,7 +2892,7 @@ def virtual_network_gateway_connection_set_shared_key(resource_group, virtual_ne
 
     :param virtual_network_gateway_connection: The virtual network gateway connection name.
 
-    :param value: The virtual network connection shared key value.
+    :param value: The new virtual network connection shared key value.
 
     :param id: Resource ID. Defaults to None.
 
@@ -2863,20 +2904,18 @@ def virtual_network_gateway_connection_set_shared_key(resource_group, virtual_ne
 		  test_net_gw_connection test_value
 
     '''
-    result = {}
+    result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
-        key = __utils__['azurearm.paged_object_to_list'](
-            netconn.virtual_network_gateway_connections.set_shared_key(
-                resource_group_name=resource_group,
-                virtual_network_gateway_connection_name=virtual_network_gateway_connection,
-                value=value,
-                id=id
-            )
+        key = netconn.virtual_network_gateway_connections.set_shared_key(
+            resource_group_name=resource_group,
+            virtual_network_gateway_connection_name=virtual_network_gateway_connection,
+            value=value,
+            id=id
         )
 
-        key_result = key.result()
-        result = key_result
+        key.wait()
+        result = True
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
@@ -2901,17 +2940,14 @@ def virtual_network_gateway_connection_get_shared_key(resource_group, virtual_ne
         salt-call azurearm_network.virtual_network_gateway_connection_get_shared_key test_group test_net_gw_connection
 
     '''
-    result = {}
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
-        key = __utils__['azurearm.paged_object_to_list'](
-            netconn.virtual_network_gateway_connections.get_shared_key(
-                resource_group_name=resource_group,
-                virtual_network_gateway_connection_name=virtual_network_gateway_connection
-            )
+        key = netconn.virtual_network_gateway_connections.get_shared_key(
+            resource_group_name=resource_group,
+            virtual_network_gateway_connection_name=virtual_network_gateway_connection
         )
 
-        result = key
+        result = key.as_dict()
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
@@ -2940,19 +2976,17 @@ def virtual_network_gateway_connection_reset_shared_key(resource_group, virtual_
 		  test_net_gw_connection test_key_length
 
     '''
-    result = {}
+    result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
-        rkey = __utils__['azurearm.paged_object_to_list'](
-            netconn.virtual_network_gateway_connections.reset_shared_key(
-                resource_group_name=resource_group,
-                virtual_network_gateway_connection_name=virtual_network_gateway_connection,
-                key_length=key_length
-            )
+        rkey = netconn.virtual_network_gateway_connections.reset_shared_key(
+            resource_group_name=resource_group,
+            virtual_network_gateway_connection_name=virtual_network_gateway_connection,
+            key_length=key_length
         )
 
-        rkey_result = rkey.result()
-        result = rkey_result
+        rkey.wait()
+        result = True
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
@@ -3026,7 +3060,7 @@ def virtual_network_gateways_list(resource_group, **kwargs):
     return result
 
 
-def virtual_network_gateway_create_or_update(resource_group, virtual_network_gateway, parameters, **kwargs):
+def virtual_network_gateway_create_or_update(resource_group, virtual_network_gateway, subnet, virtual_network, ip_configurations, **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -3034,20 +3068,87 @@ def virtual_network_gateway_create_or_update(resource_group, virtual_network_gat
 
     :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway: The name of the virtual network gateway.
+    :param virtual_network_gateway: The name of the virtual network gateway to be created.
 
-    :param parameters: Parameters supplied to create or update virtual network gateway operation.
+    :param subnet: The name of the subnet assigned to the virtual network gateway.
+
+    :param virtual_network: The name of the virtual network assigned to the subnet.
+
+    :param ip_configurations: A list of dictionaries representing valid
+        VirtualNetworkGatewayIPConfiguration objects. The 'name' and 'public_ip_address'
+        keys are required at a minimum. At least one IP Configuration must be present.
 
     CLI Example:
 
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_peering_create_or_update test_group \
-                  test_net_gw test_params
+                  test_net_gw test_subnet test_net test_ipconfigs
 
     '''
-    '''netconn = __utils__['azurearm.get_client']('network', **kwargs)'''
-    pass
+    if 'location' not in kwargs:
+        rg_props = __salt__['azurearm_resource.resource_group_get'](
+            resource_group, **kwargs
+        )
+
+        if 'error' in rg_props:
+            log.error(
+                'Unable to determine location from resource group specified.'
+            )
+            return False
+        kwargs['location'] = rg_props['location']
+
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+
+    # Loop through IP Configurations and build each dictionary to pass to model creation.
+    if isinstance(ip_configurations, list):
+        subnet = subnet_get(
+            name=subnet,
+            virtual_network=virtual_network,
+            resource_group=resource_group,
+            **kwargs
+        )
+        if 'error' not in subnet:
+            subnet = {'id': str(subnet['id'])}
+            for ipconfig in ip_configurations:
+                if 'name' in ipconfig:
+                    ipconfig['subnet'] = subnet
+                    if ipconfig.get('public_ip_address'):
+                        pub_ip = public_ip_address_get(
+                            name=ipconfig['public_ip_address'],
+                            resource_group=resource_group,
+                            **kwargs
+                        )
+                        if 'error' not in pub_ip:
+                            ipconfig['public_ip_address'] = {'id': str(pub_ip['id'])}
+
+    try:
+        gatewaymodel = __utils__['azurearm.create_object_model'](
+            'network',
+            'VirtualNetworkGateway',
+            ip_configurations=ip_configurations,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        gateway = netconn.virtual_network_gateways.create_or_update(
+            resource_group_name=resource_group,
+            virtual_network_gateway_name=virtual_network_gateway,
+            parameters=gatewaymodel
+        )
+        gateway.wait()
+        gateway_result = gateway.result()
+        result = gateway_result.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
 
 
 
@@ -3171,19 +3272,16 @@ def virtual_network_gateway_reset(resource_group, virtual_network_gateway, gatew
         salt-call azurearm_network.virtual_network_gateway_reset test_group test_net_gw
 
     '''
-    result = {}
+    result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
-        reset = __utils__['azurearm.paged_object_to_list'](
-            netconn.virtual_network_gateways.reset(
-                resource_group_name=resource_group,
-                virtual_network_gateway_name=virtual_network_gateway,
-		gateway_vip=gateway_vip
-            )
+        reset = netconn.virtual_network_gateways.reset(
+            resource_group_name=resource_group,
+            virtual_network_gateway_name=virtual_network_gateway,
+            gateway_vip=gateway_vip
         )
-
-        reset_result = reset.result()
-        result = reset_result.as_dict()
+        reset.wait()
+        result = True
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
@@ -3205,21 +3303,19 @@ def virtual_network_gateway_reset_vpn_client_shared_key(resource_group, virtual_
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_reset_vpn_client_shared_key testgroup test_net_gw
+        salt-call azurearm_network.virtual_network_gateway_reset_vpn_client_shared_key test_group test_net_gw
 
     '''
-    result = {}
+    result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
-        reset = __utils__['azurearm.paged_object_to_list'](
-            netconn.virtual_network_gateways.reset_vpn_client_shared_key(
-                resource_group_name=resource_group,
-                virtual_network_gateway_name=virtual_network_gateway
-            )
+        reset = netconn.virtual_network_gateways.reset_vpn_client_shared_key(
+            resource_group_name=resource_group,
+            virtual_network_gateway_name=virtual_network_gateway
         )
 
-        reset_result = reset.result()
-        result = reset_result
+        reset.wait()
+        result = True
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
