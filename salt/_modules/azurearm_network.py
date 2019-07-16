@@ -2751,7 +2751,8 @@ def route_tables_list_all(**kwargs):
     return result
 
 
-def virtual_network_gateway_connection_create_or_update(name, resource_group, virtual_network_gateway_src, connection_type, **kwargs):
+def virtual_network_gateway_connection_create_or_update(name, resource_group, src_virtual_network_gateway, 
+							connection_type, **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -2761,17 +2762,21 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
 
     :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway_src: The primary virtual network gateway to add the connection to. 
+    :param src_virtual_network_gateway: The name of the virtual network gateway that will 
+	be the first endpooint of the connection.
 
     :param connection_type: Gateway connection type. Possible values include:
         'IPsec', 'Vnet2Vnet', 'ExpressRoute', 'VPNClient'
+
+    A second endpoint must be passed as a keyword argument. It can be a VirtualNetworkGateway, a 
+	LocalNetworkGateway, or a ExpressRouteCircuit depending on the connection_type.
 
     CLI Example:
 
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_name test_group \
-		  test_net_gw_src test_connection_type
+		  test_src_net_gw test_connection_type
 
     '''
     if 'location' not in kwargs:
@@ -2788,9 +2793,11 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
 
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
 
-    vnet = virtual_network_gateway_get(
+    # Get a VirtualNetWorkGateway Object using the name of the Virtual Network 
+    # Gateway that the connection will originate from.
+    vnet = virtual_network_gateway_get( 
+	name=src_virtual_network_gateway,
         resource_group=resource_group,
-	virtual_network_gateway=virtual_network_gateway_src,
         **kwargs
     )
 
@@ -3339,6 +3346,9 @@ def virtual_network_gateway_generatevpnclientpackage(name, resource_group, **kwa
     :param name: The name of the virtual network gateway.
 
     :param resource_group: The name of the resource group.
+
+    The parameters for a valid VpnClientParameters object must be passed
+	as keyword arguments.
  
     CLI Example:
 
@@ -3386,6 +3396,8 @@ def virtual_network_gateway_generate_vpn_profile(name, resource_group, **kwargs)
     :param name: The name of the virtual network gateway.
 
     :param resource_group: The name of the resource group.
+
+    The parameters for a valid VpnClientParameters object must be passed                                                                                                                                          as keyword arguments. 
 
     CLI Example:
 
