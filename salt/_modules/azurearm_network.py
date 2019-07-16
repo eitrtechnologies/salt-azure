@@ -2892,8 +2892,7 @@ def virtual_network_gateway_connection_set_shared_key(name, resource_group, valu
     '''
     .. versionadded:: Sodium
 
-    Sets the virtual network gateway connection shared key for passed virtual network gateway
-        connection in the specified resource group through Network resource provider.
+    Sets the shared key for a virtual network gateway connection object.
 
     :param name: The virtual network gateway connection name. 
 
@@ -2912,24 +2911,11 @@ def virtual_network_gateway_connection_set_shared_key(name, resource_group, valu
     result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     
-    # Get the Resource ID of the connection 
-    if 'id' not in kwargs:
-        connection_props = virtual_network_gateway_connection_get(
-            name=name,
-            resource_group=resource_group,
-            **kwargs
-        )
-
-        if 'error' not in connection_props:
-            resource_id = str(connection_props['id'])
-    
     try:
         key = netconn.virtual_network_gateway_connections.set_shared_key(
             resource_group_name=resource_group,
             virtual_network_gateway_connection_name=name,
-            value=value,
-            id=resource_id,
-            **kwargs
+            value=value
         )
 
         key.wait()
