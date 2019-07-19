@@ -3073,20 +3073,18 @@ def virtual_network_gateways_list(resource_group, **kwargs):
     return result
 
 
-def virtual_network_gateway_create_or_update(name, resource_group, subnet, virtual_network, 
+def virtual_network_gateway_create_or_update(name, resource_group, virtual_network, 
                                              ip_configurations, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Creates or updates a virtual network gateway in the specified resource group. 
 
-    :param name: The name of the virtual network gateway to be created. 
+    :param name: The name of the virtual network gateway to be created or updated. 
 
     :param resource_group: The name of the resource group.
 
-    :param subnet: The name of the subnet assigned to the virtual network gateway.
-
-    :param virtual_network: The name of the virtual network assigned to the subnet.
+    :param virtual_network: The name of the virtual network associated with the virtual network gateway.
 
     :param ip_configurations: A list of dictionaries representing valid
         VirtualNetworkGatewayIPConfiguration objects. The 'name' and 'public_ip_address'
@@ -3097,7 +3095,7 @@ def virtual_network_gateway_create_or_update(name, resource_group, subnet, virtu
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_peering_create_or_update test_name test_group \
-		  test_subnet test_net test_ipconfigs
+		  test_net test_ipconfigs
 
     '''
     if 'location' not in kwargs:
@@ -3117,7 +3115,7 @@ def virtual_network_gateway_create_or_update(name, resource_group, subnet, virtu
     # Loop through IP Configurations and build each dictionary to pass to model creation.
     if isinstance(ip_configurations, list):
         subnet = subnet_get(
-            name=subnet,
+            name='GatewaySubnet',
             virtual_network=virtual_network,
             resource_group=resource_group,
             **kwargs
@@ -3163,7 +3161,6 @@ def virtual_network_gateway_create_or_update(name, resource_group, subnet, virtu
         result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
 
     return result
-
 
 
 def virtual_network_gateway_get(name, resource_group, **kwargs):

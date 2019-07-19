@@ -2783,3 +2783,299 @@ def virtual_network_peering_absent(name, virtual_network, resource_group, connec
 
     ret['comment'] = 'Failed to delete peering object {0}!'.format(name)
     return ret
+
+
+def virtual_network_gateway_connection_absent(name, resource_group, connection_auth=None):
+    '''
+    .. versionadded:: Sodium
+
+    Ensure a virtual network gateway connection does not exist in the resource_group.
+
+    :param name:
+        Name of the virtual network gateway connection.
+
+    :param resource_group:
+        The resource group associated with the virtual network gateway connection.
+
+    :param connection_auth:
+        A dict with subscription and authentication parameters to be used in connecting to the
+        Azure Resource Manager API.
+    '''
+    ret = {
+        'name': name,
+        'result': False,
+        'comment': '',
+        'changes': {}
+    }
+
+    if not isinstance(connection_auth, dict):
+        ret['comment'] = 'Connection information must be specified via connection_auth dictionary!'
+        return ret
+
+    connection = __salt__['azurearm_network.virtual_network_gateway_connection_get'](
+        name,
+        resource_group,
+        azurearm_log_level='info',
+        **connection_auth
+    )
+
+    if 'error' in connection:
+        ret['result'] = True
+        ret['comment'] = 'Virtual network gateway connection {0} was not found.'.format(name)
+        return ret
+
+    elif __opts__['test']:
+        ret['comment'] = 'Virtual network gateway connection {0} would be deleted.'.format(name)
+        ret['result'] = None
+        ret['changes'] = {
+            'old': connection,
+            'new': {},
+        }
+        return ret
+
+    deleted = __salt__['azurearm_network.virtual_network_gateway_connection_delete'](
+        name,
+        resource_group,
+        **connection_auth
+    )
+
+    if deleted:
+        ret['result'] = True
+        ret['comment'] = 'Virtual network gateway connection {0} has been deleted.'.format(name)
+        ret['changes'] = {
+            'old': connection,
+            'new': {}
+        }
+        return ret
+
+    ret['comment'] = 'Failed to delete virtal network gateway connection {0}!'.format(name)
+    return ret
+
+
+def virtual_network_gateway_present(name, resource_group, virtual_network, ip_configurations,
+				    tags=None, connection_auth=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Ensure a virtual network gateway exists.
+
+    :param name: 
+        Name of the virtual network gateway.
+
+    :param resource_group: 
+        The resource group associated with the virtual network gateway.
+
+    :param virtual_network:
+        The virtual network associated with the virtual network gateway.
+
+    :param ip_configurations:
+        A list of dictionaries representing valid VirtualNetworkGatewayIPConfiguration objects. Valid parameters are:
+        - ``name``: The name of the resource that is unique within a resource group.
+        - ``public_ip_address``: Name of an existing public IP address which will be assigned to the IP config object.
+        - ``private_ip_allocation_method``: The private IP allocation method. Possible values are: 'Static' and
+          'Dynamic'.
+        - ``subnet``: Name of an existing subnet inside of which the IP config will reside.
+
+    :param tags:
+        A dictionary of strings can be passed as tag metadata to the virtual network gateway object.
+
+    :param connection_auth:
+        A dict with subscription and authentication parameters to be used in connecting to the
+        Azure Resource Manager API.
+
+    Example usage:
+
+    .. code-block:: yaml THE FIRST ONE IS THE BARE MINIMUM
+
+        Ensure virtual network exists:
+            azurearm_network.virtual_network_gateway_present:
+                - name: connection1
+                - resource_group: group1
+                - virtual_network: vnet1
+                - ip_configurations:
+                  - name: ip_config1
+                    public_ip_address: pub_ip1
+                  - name: ip_config2
+                    public_ip_address: pub_ip2
+                - tags:
+                    contact_name: Elmer Fudd Gantry
+                - connection_auth: {{ profile }}
+                - require:
+                  - azurearm_resource: Ensure resource group exists
+                  - azurearm_network: Ensure virtual network exists
+    '''
+    ret = {
+        'name': name,
+        'result': False,
+        'comment': '',
+        'changes': {}
+    }
+
+    if not isinstance(connection_auth, dict):
+        ret['comment'] = 'Connection information must be specified via connection_auth dictionary!'
+        return ret
+
+    gateway = __salt__['azurearm_network.virtual_network_gateway_get'](
+        name,
+        resource_group,
+        azurearm_log_level='info',
+        **connection_auth
+    )      
+
+    if 'error' not in gateway:
+        tag_changes = __utils__['dictdiffer.deep_diff'](gateway.get('tags', {}), tags or {})
+        if tag_changes:
+            ret['changes']['tags'] = tag_changes
+
+
+        '''
+        What we may need to check for differences:
+        (* means done)
+
+        VNet
+
+        IP_Configs
+
+        gateway_type *
+        
+        vpn_type * 
+
+        enable_bgp *
+
+        active_active *
+
+        sku
+
+        '''
+
+        if kwargs.get('gateway_type', 'Vpn') != gateway.get('gateway_type'):
+	    ret['changes']['gateway_type'] = {
+                'old': gateway.get('gateway_type'),
+                'new': kwargs.get('gateway_type')
+            }
+
+        if kwargs.get('active_active', False) != gateway.get('active_active'):
+            ret['changes']['active_active'] = {
+                'old': gateway.get('active_active'),
+                'new': kwargs.get('active_active')
+            }
+
+        if kwargs.get('enable_bgp', False) != gateway.get('enable_bgp'):
+            ret['changes']['enable_bgp'] = {
+	        'old': gateway.get('enable_bgp'),
+		'new': kwargs.get('enable_bgp')
+	    }
+
+        if not ret['changes']:
+            ret['result'] = True
+            ret['comment'] = 'Virtual network gateway {0} is already present.'.format(name)
+            return ret
+
+        if __opts__['test']:
+            ret['result'] = None
+            ret['comment'] = 'Virtual network gateway {0} would be updated.'.format(name)
+            return ret
+
+    else:
+        ret['changes'] = {
+            'old': {},
+            'new': {
+                'name': name,
+                'resource_group': resource_group,
+                'virtual_network': virtual_network,
+                'ip_configurations': ip_configurations,
+                'tags': tags,
+            }
+        }
+
+    if __opts__['test']:
+        ret['comment'] = 'Virtual network gateway {0} would be created.'.format(name)
+        ret['result'] = None
+        return ret
+
+    gateway_kwargs = kwargs.copy()
+    gateway_kwargs.update(connection_auth)
+
+    gateway = __salt__['azurearm_network.virtual_network_gateway_create_or_update'](
+        name=name,
+        resource_group=resource_group,
+        virtual_network=virtual_network,
+        ip_configurations=ip_configurations,
+        tags=tags,
+        **gateway_kwargs
+    )
+
+    if 'error' not in gateway:
+        ret['result'] = True
+        ret['comment'] = 'Virtual network gateway {0} has been created.'.format(name)
+        return ret
+
+    ret['comment'] = 'Failed to create virtual network gateway {0}! ({1})'.format(name, gateway.get('error'))
+    return ret
+
+
+def virtual_network_gateway_absent(name, resource_group, connection_auth=None):
+    '''
+    .. versionadded:: Sodium
+
+    Ensure a virtual network gateway object does not exist in the resource_group.
+
+    :param name:
+        Name of the virtual network gateway object.
+
+    :param resource_group:
+        The resource group associated with the virtual network gateway.
+
+    :param connection_auth:
+        A dict with subscription and authentication parameters to be used in connecting to the
+        Azure Resource Manager API.
+    '''
+    ret = {
+        'name': name,
+        'result': False,
+        'comment': '',
+        'changes': {}
+    }
+
+    if not isinstance(connection_auth, dict):
+        ret['comment'] = 'Connection information must be specified via connection_auth dictionary!'
+        return ret
+
+    gateway = __salt__['azurearm_network.virtual_network_gateway_get'](
+        name,
+        resource_group,
+        azurearm_log_level='info',
+        **connection_auth
+    )
+
+    if 'error' in gateway:
+        ret['result'] = True
+        ret['comment'] = 'Virtual network gateway object {0} was not found.'.format(name)
+        return ret
+
+    elif __opts__['test']:
+        ret['comment'] = 'Virtual network gateway object {0} would be deleted.'.format(name)
+        ret['result'] = None
+        ret['changes'] = {
+            'old': gateway,
+            'new': {},
+        }
+        return ret
+
+    deleted = __salt__['azurearm_network.virtual_network_gateway_delete'](
+        name,
+        resource_group,
+        **connection_auth
+    )
+
+    if deleted:
+        ret['result'] = True
+        ret['comment'] = 'Virtual network gateway object {0} has been deleted.'.format(name)
+        ret['changes'] = {
+            'old': gateway,
+            'new': {}
+        }
+        return ret
+
+    ret['comment'] = 'Failed to delete virtal network gateway object {0}!'.format(name)
+    return ret
