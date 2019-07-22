@@ -2758,12 +2758,12 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, sr
 
     Creates or updates a virtual network gateway connection in the specified resource group.
 
-    :param name: The name of the virtual network gateway connection to create. 
+    :param name: The name of the virtual network gateway connection to create or update. 
 
     :param resource_group: The name of the resource group.
 
     :param src_virtual_network_gateway: The name of the virtual network gateway that will 
-	be the first endpooint of the connection.
+	be the first endpoint of the connection.
 
     :param connection_type: Gateway connection type. Possible values include:
         'IPsec', 'Vnet2Vnet', 'ExpressRoute', 'VPNClient'

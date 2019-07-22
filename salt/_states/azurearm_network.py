@@ -2785,6 +2785,122 @@ def virtual_network_peering_absent(name, virtual_network, resource_group, connec
     return ret
 
 
+def virtual_network_gateway_connection_present(name, resource_group, src_virtual_network_gateway, connection_type,
+					       tags=None, connection_auth=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Ensure a virtual network gateway connection exists.
+
+    :param name:
+        The name of the virtual network gateway connection.
+
+    :param resource_group: 
+        The name of the resource group associated with the virtual network gateway connection.
+
+    :param src_virtual_network_gateway: 
+        The name of the virtual network gateway that will be the first endpoint of the connection.
+
+    :param connection_type: 
+        Gateway connection type. Possible values include: 'IPsec', 'Vnet2Vnet', 'ExpressRoute', 'VPNClient'
+
+    :param tags:
+        A dictionary of strings can be passed as tag metadata to the virtual network gateway object.
+
+    :param connection_auth:
+        A dict with subscription and authentication parameters to be used in connecting to the
+        Azure Resource Manager API.
+
+    A second endpoint must be passed as a keyword argument. It can be a VirtualNetworkGateway, a
+        LocalNetworkGateway, or a ExpressRouteCircuit depending on the connection_type.
+
+    Example usage:
+
+    .. code-block:: yaml                                                                                                                                                                                  
+        Ensure virtual network gateway connection exists:
+            azurearm_network.virtual_network_gateway_connection_present:
+                - name: connection1
+                - resource_group: group1
+                - src_virtual_network_gateway: gateway1
+                - connection_type: Vnet2Vnet
+                - tags:
+                    contact_name: Elmer Fudd Gantry
+                - connection_auth: {{ profile }}
+                - require:
+                  - azurearm_resource: Ensure resource group exists
+                  - azurearm_network: Ensure virtual network gateway exists
+    '''
+    ret = {
+        'name': name,
+        'result': False,
+        'comment': '',
+        'changes': {}
+    }
+
+    if not isinstance(connection_auth, dict):
+        ret['comment'] = 'Connection information must be specified via connection_auth dictionary!'
+        return ret
+
+    connection = __salt__['azurearm_network.virtual_network_gateway_connection_get'](
+        name,
+        resource_group,
+        azurearm_log_level='info',
+        **connection_auth
+    )
+
+    if 'error' not in connection:
+        tag_changes = __utils__['dictdiffer.deep_diff'](connection.get('tags', {}), tags or {})
+        if tag_changes:
+            ret['changes']['tags'] = tag_changes
+
+        if not ret['changes']:
+            ret['result'] = True
+            ret['comment'] = 'Virtual network gateway connection {0} is already present.'.format(name)
+            return ret
+
+        if __opts__['test']:
+            ret['result'] = None
+            ret['comment'] = 'Virtual network gateway connection {0} would be updated.'.format(name)
+            return ret
+
+    else:
+        ret['changes'] = {
+            'old': {},
+            'new': {
+                'name': name,
+                'resource_group': resource_group,
+                'src_virtual_network_gateway': src_virtual_network_gateway,
+                'connection_type': connection_type,
+                'tags': tags,
+            }
+        }
+
+    if __opts__['test']:
+        ret['comment'] = 'Virtual network gateway connection {0} would be created.'.format(name)
+        ret['result'] = None
+        return ret
+
+    connection_kwargs = kwargs.copy()
+    connection_kwargs.update(connection_auth)
+
+    connection = __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
+        name=name,
+        resource_group=resource_group,
+        src_virtual_network_gateway=src_virtual_network_gateway,
+        connection_type=connection_type,
+        tags=tags,
+        **connection_kwargs
+    )
+
+    if 'error' not in connection:
+        ret['result'] = True
+        ret['comment'] = 'Virtual network gateway connection {0} has been created.'.format(name)
+        return ret
+
+    ret['comment'] = 'Failed to create virtual network gateway connection {0}! ({1})'.format(name, gateway.get('error'))
+    return ret
+
+
 def virtual_network_gateway_connection_absent(name, resource_group, connection_auth=None):
     '''
     .. versionadded:: Sodium
@@ -2800,6 +2916,15 @@ def virtual_network_gateway_connection_absent(name, resource_group, connection_a
     :param connection_auth:
         A dict with subscription and authentication parameters to be used in connecting to the
         Azure Resource Manager API.
+
+    Example usage:
+
+    .. code-block:: yaml
+        Ensure virtual network gateway connection absent:
+            azurearm_network.virtual_network_gateway_connection_absent:
+                - name: connection1
+                - resource_group: group1
+                - connection_auth: {{ profile }}
     '''
     ret = {
         'name': name,
@@ -2870,11 +2995,12 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
 
     :param ip_configurations:
         A list of dictionaries representing valid VirtualNetworkGatewayIPConfiguration objects. Valid parameters are:
-        - ``name``: The name of the resource that is unique within a resource group.
-        - ``public_ip_address``: Name of an existing public IP address which will be assigned to the IP config object.
-        - ``private_ip_allocation_method``: The private IP allocation method. Possible values are: 'Static' and
-          'Dynamic'.
-        - ``subnet``: Name of an existing subnet inside of which the IP config will reside.
+          - ``name``: The name of the resource that is unique within a resource group.
+          - ``public_ip_address``: Name of an existing public IP address that'll be assigned to the IP config object.
+          - ``private_ip_allocation_method``: The private IP allocation method. Possible values are: 
+                                              'Static' and 'Dynamic'.
+          - ``subnet``: Name of an existing subnet inside of which the IP config will reside. 
+        The 'name' & 'public_ip_address' keys are required at minimum. At least one IP configuration must be present.
 
     :param tags:
         A dictionary of strings can be passed as tag metadata to the virtual network gateway object.
@@ -2883,23 +3009,82 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
         A dict with subscription and authentication parameters to be used in connecting to the
         Azure Resource Manager API.
 
+    Optional key word arguments:
+
+    :param gateway_type:
+        The type of this virtual network gateway. Possible values include: 'Vpn', 'ExpressRoute'. 
+	The gateway type immutable once set.
+
+    :param vpn_type: 
+	The type of this virtual network gateway. Possible values include: 'PolicyBased', 'RouteBased'
+	The vpn type is immutable once set.
+
+    :param sku: The virtual network gateway SKU.
+
+    :param enable_bgp: Whether BGP is enabled for this virtual network gateway or not. Defaults as False.
+	BGP requires a SKU of VpnGw1, VpnGw2, VpnGw3, Standard, or HighPerformance.
+
+    :param active_active: Whether active-active mode is enabled for this virtual network gateway or not. 
+        Defaults as False. Active-active mode requires a SKU of VpnGw1, VpnGw2, VpnGw3, or HighPerformance.
+    
+    :param bgp_settings: 
+	A dictionary representing a valid BgpSettings object, which stores the virtual network 
+	gateway's BGP speaker settings. Valid parameters are:
+	  - ``asn``: The BGP speaker's Autonomous System Number. This is an integer value.
+          - ``bgp_peering_address``: The BGP peering address and BGP identifier of this BGP speaker.
+	                             This is a string value. 
+          - ``peer_weight``: The weight added to routes learned from this BGP speaker. This is an integer value.
+
+    :param gateway_default_site:
+	The reference of the LocalNetworkGateway resource which represents local network site having default routes. 
+	Assign Null value in case of removing existing default site setting.
+
+    :param vpn_client_configuration
+        Look into this further                                                                                                                                                                        
+    
+    :param custom_routes
+	The reference of the address space resource which represents the custom routes address space specified 
+	by the the customer for virtual network gateway and VpnClient. This is a list of strings representing address
+        prefixes, which are address blocks reserved for this virtual network in CIDR notation.
+
     Example usage:
 
-    .. code-block:: yaml THE FIRST ONE IS THE BARE MINIMUM
+    .. code-block:: yaml
 
         Ensure virtual network exists:
             azurearm_network.virtual_network_gateway_present:
-                - name: connection1
+                - name: gateway1
+                - resource_group: group1
+                - virtual_network: vnet1
+                - ip_configurations:
+                  - name: ip_config1
+                    public_ip_address: pub_ip1
+                - tags:
+                    contact_name: Elmer Fudd Gantry
+                - connection_auth: {{ profile }}
+                - require:
+                  - azurearm_resource: Ensure resource group exists
+                  - azurearm_network: Ensure virtual network exists
+
+        Ensure virtual network exists:
+	    azurearm_network.virtual_network_gateway_present:
+                - name: gateway1
                 - resource_group: group1
                 - virtual_network: vnet1
                 - ip_configurations:
                   - name: ip_config1
                     public_ip_address: pub_ip1
                   - name: ip_config2
-                    public_ip_address: pub_ip2
-                - tags:
+                    public_ip_address: pub_ip2                                                                                                                                                                            - tags:
                     contact_name: Elmer Fudd Gantry
                 - connection_auth: {{ profile }}
+                - gateway_type: 'Vpn'
+                - vpn_type: 'RouteBased'
+                - enable_bgp: True
+                - bgp_settings:
+		    asn: 65515
+                    bgp_peering_address: 10.1.0.0
+                    peering_weight: 0
                 - require:
                   - azurearm_resource: Ensure resource group exists
                   - azurearm_network: Ensure virtual network exists
@@ -2927,45 +3112,74 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
         if tag_changes:
             ret['changes']['tags'] = tag_changes
 
-
         '''
-        What we may need to check for differences:
-        (* means done)
+        What still needs to be checked:
 
-        VNet
+        gateway_default_site?
 
-        IP_Configs
+        custom_routes?
 
-        gateway_type *
-        
-        vpn_type * 
-
-        enable_bgp *
-
-        active_active *
-
-        sku
-
+        Do to list:
+          - Find the default value for sku (it would depend on gateway and vpn type, which requires further testing to determine all of those)
         '''
 
-        if kwargs.get('gateway_type', 'Vpn') != gateway.get('gateway_type'):
-	    ret['changes']['gateway_type'] = {
-                'old': gateway.get('gateway_type'),
-                'new': kwargs.get('gateway_type')
-            }
+        if ip_configurations:
+            comp_ret = __utils__['azurearm.compare_list_of_dicts'](
+                gateway.get('ip_configurations', []),
+                ip_configurations,
+                ['public_ip_address', 'subnet']
+            )
+
+            if comp_ret.get('comment'):
+                ret['comment'] = '"ip_configurations" {0}'.format(comp_ret['comment'])
+                return ret
+
+            if comp_ret.get('changes'):
+                ret['changes']['ip_configurations'] = comp_ret['changes']
 
         if kwargs.get('active_active', False) != gateway.get('active_active'):
             ret['changes']['active_active'] = {
                 'old': gateway.get('active_active'),
-                'new': kwargs.get('active_active')
+                'new': kwargs.get('active_active', False)
             }
 
         if kwargs.get('enable_bgp', False) != gateway.get('enable_bgp'):
             ret['changes']['enable_bgp'] = {
 	        'old': gateway.get('enable_bgp'),
-		'new': kwargs.get('enable_bgp')
+		'new': kwargs.get('enable_bgp', False)
 	    }
 
+	if kwargs.get('sku'):
+            sku = {'name': kwargs.get('sku').capitalize()}
+            sku_changes = __utils__['dictdiffer.deep_diff'](gateway.get('sku', {}), sku)
+            if sku_changes:
+                ret['changes']['sku'] = sku_changes
+
+        bgp_settings = kwargs.get('bgp_settings')
+        if bgp_settings:
+            if not isinstance(bgp_settings, dict):
+                ret['comment'] = 'BGP settings must be provided as a dictionary!'
+                return ret
+
+            for key in bgp_settings:
+                if bgp_settings[key] != gateway.get('bgp_settings', {}).get(key):
+                    ret['changes']['bgp_settings'] = {
+                        'old': gateway.get('bgp_settings'),
+                        'new': bgp_settings
+                    }
+                    break
+        '''
+        FIGURE OUT HOW TO CHECK THIS BECAUSE CUSTOM_ROUTES ISN'T AN OPTION ON GET 
+        addr_changes = set(kwargs.get('address_space') or []).symmetric_difference(
+            set(gateway.get('address_space', {}).get('address_prefixes', [])))
+        if addr_changes:
+            ret['changes']['address_space'] = {
+                'address_prefixes': {
+                    'old': gateway.get('address_space', {}).get('address_prefixes', []),
+                    'new': set(kwargs.get('address_prefixes', [])),
+                }
+            }
+	'''
         if not ret['changes']:
             ret['result'] = True
             ret['comment'] = 'Virtual network gateway {0} is already present.'.format(name)
@@ -2984,9 +3198,16 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                 'resource_group': resource_group,
                 'virtual_network': virtual_network,
                 'ip_configurations': ip_configurations,
+                'gateway_type': kwargs.get('gateway_type', 'Vpn'),
+		'vpn_type': kwargs.get('vpn_type', 'PolicyBased'),
+                'active_active': kwargs.get('active_active', False),
+                'enable_bgp': kwargs.get('enable_bgp', False),
                 'tags': tags,
             }
         }
+
+        if kwargs.get('sku'):
+	    ret['changes']['new']['sku'] = kwargs['sku']
 
     if __opts__['test']:
         ret['comment'] = 'Virtual network gateway {0} would be created.'.format(name)
@@ -3029,6 +3250,15 @@ def virtual_network_gateway_absent(name, resource_group, connection_auth=None):
     :param connection_auth:
         A dict with subscription and authentication parameters to be used in connecting to the
         Azure Resource Manager API.
+
+    Example usage:
+
+    .. code-block:: yaml
+	Ensure virtual network gateway absent:
+	    azurearm_network.virtual_network_gateway_absent:
+		- name: gateway1
+		- resource_group: group1
+		- connection_auth: {{ profile }}
     '''
     ret = {
         'name': name,
