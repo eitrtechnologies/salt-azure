@@ -3051,7 +3051,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
 
     .. code-block:: yaml
 
-        Ensure virtual network exists:
+        Ensure virtual network gateway exists:
             azurearm_network.virtual_network_gateway_present:
                 - name: gateway1
                 - resource_group: group1
@@ -3066,7 +3066,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                   - azurearm_resource: Ensure resource group exists
                   - azurearm_network: Ensure virtual network exists
 
-        Ensure virtual network exists:
+        Ensure virtual network gateway exists:
 	    azurearm_network.virtual_network_gateway_present:
                 - name: gateway1
                 - resource_group: group1
@@ -3087,7 +3087,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                     peering_weight: 0
                 - require:
                   - azurearm_resource: Ensure resource group exists
-                  - azurearm_network: Ensure virtual network exists
+                  - azurearm_network: Ensure virtual network gateway exists
     '''
     ret = {
         'name': name,
@@ -3309,3 +3309,237 @@ def virtual_network_gateway_absent(name, resource_group, connection_auth=None):
 
     ret['comment'] = 'Failed to delete virtal network gateway object {0}!'.format(name)
     return ret
+
+
+def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_settings=None, 
+                                  address_prefixes=None, tags=None, connection_auth=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Ensure a location network gateway exists.
+
+    :param name:
+        Name of the local network gateway.
+
+    :param resource_group:
+        The resource group assigned to the local network gateway.
+
+    :param gateway_ip_address:
+        IP address of local network gateway.
+
+    :param bgp_settings: 
+	A dictionary representing a valid BgpSettings object, which stores the local network 
+	gateway's BGP speaker settings. Valid parameters are:
+	  - ``asn``: The BGP speaker's Autonomous System Number. This is an integer value.
+          - ``bgp_peering_address``: The BGP peering address and BGP identifier of this BGP speaker.
+	                             This is a string value. 
+          - ``peer_weight``: The weight added to routes learned from this BGP speaker. This is an integer value.
+
+    :param address_prefixes:
+        A list of CIDR blocks which can be used by subnets within the virtual network. 
+	Represents the local network site address space.
+
+    :param tags:
+        A dictionary of strings can be passed as tag metadata to the virtual network object.
+    
+    :param connection_auth:
+        A dict with subscription and authentication parameters to be used in connecting to the
+        Azure Resource Manager API.
+
+    Example usage:
+
+    .. code-block:: yaml
+
+        Ensure local network gateway exists:
+            azurearm_network.local_network_gateway_present:
+                - name: gateway1
+    		- resource_group: rg-module-testing
+    		- gateway_ip_address: 192.168.0.1
+    		- bgp_settings:
+        	    asn: 65515
+        	    bgp_peering_address: 10.2.2.2
+        	    peer_weight: 0
+    		- address_prefixes:
+       	 	    - '10.0.0.0/8'
+        	    - '192.168.0.0/16'
+    		- connection_auth: {{ profile }}  
+    '''
+    ret = {
+        'name': name,
+        'result': False,
+        'comment': '',
+        'changes': {}
+    }
+
+    if not isinstance(connection_auth, dict):
+        ret['comment'] = 'Connection information must be specified via connection_auth dictionary!'
+        return ret
+
+    gateway = __salt__['azurearm_network.local_network_gateway_get'](
+        name,
+        resource_group,
+        azurearm_log_level='info',
+        **connection_auth
+    )
+
+    if 'error' not in gateway:
+        tag_changes = __utils__['dictdiffer.deep_diff'](gateway.get('tags', {}), tags or {})
+        if tag_changes:
+            ret['changes']['tags'] = tag_changes
+
+        if gateway_ip_address != gateway.get('gateway_ip_address'):
+            ret['changes']['gateway_ip_address'] = {
+                'old': gateway.get('gateway_ip_address'),
+                'new': gateway_ip_address
+            }
+
+        if bgp_settings:
+            if not isinstance(bgp_settings, dict):
+                ret['comment'] = 'BGP settings must be provided as a dictionary!'
+                return ret
+
+            for key in bgp_settings:
+                if bgp_settings[key] != gateway.get('bgp_settings', {}).get(key):
+                    ret['changes']['bgp_settings'] = {
+                        'old': gateway.get('bgp_settings'),
+                        'new': bgp_settings
+                    }
+                    break
+
+        addr_changes = set(address_prefixes or []).symmetric_difference(
+            set(gateway.get('local_network_address_space', {}).get('address_prefixes', [])))
+        if addr_changes:
+            ret['changes']['local_network_address_space'] = {
+                'address_prefixes': {
+                    'old': gateway.get('local_network_address_space', {}).get('address_prefixes', []),
+                    'new': address_prefixes,
+                }
+            }       
+
+        if not ret['changes']:
+            ret['result'] = True
+            ret['comment'] = 'Local network gateway {0} is already present.'.format(name)
+            return ret
+
+        if __opts__['test']:
+            ret['result'] = None
+            ret['comment'] = 'Local network gateway {0} would be updated.'.format(name)
+            return ret
+
+    else:
+        ret['changes'] = {
+            'old': {},
+            'new': {
+                'name': name,
+                'resource_group': resource_group,
+		'gateway_ip_address': gateway_ip_address,
+                'bgp_settings': bgp_settings,
+                'local_network_address_space': {'address_prefixes': (address_prefixes or [])},
+                'tags': tags,
+            }
+        }
+
+    if __opts__['test']:
+        ret['comment'] = 'Local network gateway {0} would be created.'.format(name)
+        ret['result'] = None
+        return ret
+
+    gateway_kwargs = kwargs.copy()
+    gateway_kwargs.update(connection_auth)
+
+    gateway = __salt__['azurearm_network.local_network_gateway_create_or_update'](
+        name=name,
+        resource_group=resource_group,
+        gateway_ip_address=gateway_ip_address,
+        local_network_address_space={'address_prefixes': address_prefixes},
+	bgp_settings=bgp_settings,
+	tags=tags,
+        **gateway_kwargs
+    )
+
+    if 'error' not in gateway:
+        ret['result'] = True
+        ret['comment'] = 'Local network gateway {0} has been created.'.format(name)
+        return ret
+
+    ret['comment'] = 'Failed to create local network gateway {0}! ({1})'.format(name, gateway.get('error'))
+    return ret
+
+
+def local_network_gateway_absent(name, resource_group, connection_auth=None):
+    '''
+    .. versionadded:: Sodium
+
+    Ensure a local network gateway object does not exist in the resource_group.
+
+    :param name:
+        Name of the local network gateway object.
+
+    :param resource_group:
+        The resource group associated with the local network gateway.
+
+    :param connection_auth:
+        A dict with subscription and authentication parameters to be used in connecting to the
+        Azure Resource Manager API.
+
+    Example usage:
+
+    .. code-block:: yaml
+
+        Ensure local network gateway absent:
+	    azurearm_network.local_network_gateway_absent:
+                - name: gateway1
+                - resource_group: group1
+                - connection_auth: {{ profile }}
+    '''
+    ret = {
+        'name': name,
+        'result': False,
+        'comment': '',
+        'changes': {}
+    }
+
+    if not isinstance(connection_auth, dict):
+        ret['comment'] = 'Connection information must be specified via connection_auth dictionary!'
+        return ret
+
+    gateway = __salt__['azurearm_network.local_network_gateway_get'](
+        name,
+        resource_group,
+        azurearm_log_level='info',
+        **connection_auth
+    )
+
+    if 'error' in gateway:
+        ret['result'] = True
+        ret['comment'] = 'Local network gateway object {0} was not found.'.format(name)
+        return ret
+
+    elif __opts__['test']:
+        ret['comment'] = 'Local network gateway object {0} would be deleted.'.format(name)
+        ret['result'] = None
+        ret['changes'] = {
+            'old': gateway,
+            'new': {},
+        }
+        return ret
+
+
+    deleted = __salt__['azurearm_network.local_network_gateway_delete'](
+        name,
+        resource_group,
+        **connection_auth
+    )
+
+    if deleted:
+        ret['result'] = True
+        ret['comment'] = 'Local network gateway object {0} has been deleted.'.format(name)
+        ret['changes'] = {
+            'old': gateway,
+            'new': {}
+        }
+        return ret
+
+    ret['comment'] = 'Failed to delete local network gateway object {0}!'.format(name)
+    return ret
+
