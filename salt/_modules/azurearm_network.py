@@ -3961,3 +3961,164 @@ def virtual_network_peering_create_or_update(name, remote_virtual_network, virtu
         result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
 
     return result
+
+
+def local_network_gateway_create_or_update(name, resource_group, gateway_ip_address, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Creates or updates a local network gateway object in the specified resource group.
+
+    :param name: The name of the local network gateway object to be created or updated.
+
+    :param resource_group: The name of the resource group associated with the local network gateway.
+
+    :param gateway_ip_address: IP address of the local network gateway.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.local_network_gateway_create_or_update test_name test_group test_ip
+
+    '''
+    if 'location' not in kwargs:
+        rg_props = __salt__['azurearm_resource.resource_group_get'](
+            resource_group, **kwargs
+        )
+
+        if 'error' in rg_props:
+            log.error(
+                'Unable to determine location from resource group specified.'
+            )
+            return False
+        kwargs['location'] = rg_props['location']
+
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+
+    try:
+        gatewaymodel = __utils__['azurearm.create_object_model'](
+            'network',
+            'LocalNetworkGateway',
+	    gateway_ip_address=gateway_ip_address,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        gateway = netconn.local_network_gateways.create_or_update(
+            local_network_gateway_name=name,
+            resource_group_name=resource_group,
+            parameters=gatewaymodel
+        )
+        gateway.wait()
+        gateway_result = gateway.result()
+        result = gateway_result.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
+
+
+def local_network_gateway_get(name, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets the details of a specific local network gateway within a specified resource group.
+    
+    :param name: The name of the local network gateway. 
+    
+    :param resource_group: The name of the resource group. 
+    
+    CLI Example:
+    
+    .. code-block:: bash
+        
+        salt-call azurearm_network.local_network_gateway_get test_name test_group
+    
+    '''
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        gateway = netconn.local_network_gateways.get(
+            resource_group_name=resource_group,
+            local_network_gateway_name=name
+        )
+
+        result = gateway.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result 
+
+
+def local_network_gateway_delete(name, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Deletes the specified local network gateway.
+
+    :param name: The name of the local network gateway that will be deleted.
+
+    :param resource_group: The name of the resource group. 
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.local_network_gateway_delete test_name test_group
+    
+    '''
+    result = False
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        gateway = netconn.local_network_gateways.delete(
+            resource_group_name=resource_group,
+            local_network_gateway_name=name
+        )
+        gateway.wait()
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+
+    return result
+
+
+def local_network_gateways_list(resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Lists all local network gateways within a resource group.
+
+    :param resource_group: The name of the resource group.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.local_network_gateways_list test_group
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        gateways = __utils__['azurearm.paged_object_to_list'](
+            netconn.local_network_gateways.list(
+                resource_group_name=resource_group
+            )
+        )
+
+        for gateway in gateways:
+            result[gateway['name']] = gateway
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
