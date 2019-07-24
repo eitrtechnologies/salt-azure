@@ -2751,7 +2751,7 @@ def route_tables_list_all(**kwargs):
     return result
 
 
-def virtual_network_gateway_connection_create_or_update(name, resource_group, src_virtual_network_gateway, 
+def virtual_network_gateway_connection_create_or_update(name, resource_group, virtual_network_gateway1, 
 							connection_type, **kwargs):
     '''
     .. versionadded:: Sodium
@@ -2762,7 +2762,7 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, sr
 
     :param resource_group: The name of the resource group.
 
-    :param src_virtual_network_gateway: The name of the virtual network gateway that will 
+    :param virtual_network_gateway1: The name of the virtual network gateway that will 
 	be the first endpoint of the connection.
 
     :param connection_type: Gateway connection type. Possible values include:
@@ -2776,7 +2776,7 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, sr
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_name test_group \
-		  test_src_net_gw test_connection_type
+		  test_net_gw1 test_connection_type
 
     '''
     if 'location' not in kwargs:
@@ -2795,8 +2795,8 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, sr
 
     # Get a VirtualNetWorkGateway Object using the name of the Virtual Network 
     # Gateway that the connection will originate from.
-    vnet = virtual_network_gateway_get( 
-	name=src_virtual_network_gateway,
+    vnetgw = virtual_network_gateway_get( 
+	name=virtual_network_gateway1,
         resource_group=resource_group,
         **kwargs
     )
@@ -2805,7 +2805,7 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, sr
         connectionmodel = __utils__['azurearm.create_object_model'](
             'network',
             'VirtualNetworkGatewayConnection',
-            virtual_network_gateway1=vnet,
+            virtual_network_gateway1=vnetgw,
 	    connection_type=connection_type,
             **kwargs
         )
@@ -3086,9 +3086,14 @@ def virtual_network_gateway_create_or_update(name, resource_group, virtual_netwo
 
     :param virtual_network: The name of the virtual network associated with the virtual network gateway.
 
-    :param ip_configurations: A list of dictionaries representing valid
-        VirtualNetworkGatewayIPConfiguration objects. The 'name' and 'public_ip_address'
-        keys are required at a minimum. At least one IP Configuration must be present.
+    :param ip_configurations:
+        A list of dictionaries representing valid VirtualNetworkGatewayIPConfiguration objects. Valid parameters are:
+          - ``name``: The name of the resource that is unique within a resource group.
+          - ``public_ip_address``: Name of an existing public IP address that'll be assigned to the IP config object.
+          - ``private_ip_allocation_method``: The private IP allocation method. Possible values are:
+                                              'Static' and 'Dynamic'.
+          - ``subnet``: Name of an existing subnet inside of which the IP config will reside.
+        The 'name' & 'public_ip_address' keys are required at minimum. Only one IP configuration dictionary is allowed.
  
     CLI Example:
 
