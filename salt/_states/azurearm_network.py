@@ -2786,10 +2786,11 @@ def virtual_network_peering_absent(name, virtual_network, resource_group, connec
 
 
 def virtual_network_gateway_connection_present(name, resource_group, virtual_network_gateway1, connection_type,
-					       authorization_key=None, enable_bgp=None, shared_key=None, 
-					       connection_protocol=None, local_network_gateway2=None,
-					       virtual_network_gateway2=None, ipsec_policies=None, tags=None, 
-					       connection_auth=None, **kwargs):
+					       virtual_network_gateway2=None, local_network_gateway2=None, peer=None,
+					       connection_protocol=None, shared_key=None, enable_bgp=None, 
+					       ipsec_policies=None, use_policy_based_traffic_selectors=None,
+					       routing_weight=None, express_route_gateway_bypass=None, 
+					       authorization_key=None, tags=None, connection_auth=None, **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -2806,49 +2807,64 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
 	The virtual_network_gateway1 is immutable once set.
 
     :param connection_type: 
-        Gateway connection type. Possible values include: 'IPsec', 'Vnet2Vnet', 'ExpressRoute', 'VPNClient'
+        Gateway connection type. Possible values include: 'IPsec', 'Vnet2Vnet', 'ExpressRoute', 'VPNClient'. 
+	The connection_type is immutable once set.
 
-    :param connection_protocol: Connection protocol used for this connection.
-        Possible values include: 'IKEv2', 'IKEv1'.
+    :param virtual_network_gateway2:
+        The name of the virtual network gateway that will be used as the second endpoint for the connection.
+        Required for a connection_type of 'Vnet2Vnet'.
 
-    :param virtual_network_gateway2: The name of the virtual network gateway used as the second endpoint 
-	for the connection. Required for a connection_type of 'Vnet2Vnet'.
+    :param local_network_gateway2:
+        The name of the local network gateway that will be used as the second endpoint for the connection.
+        Required for a connection_type of 'IPSec'.
 
-    :param local_network_gateway2: The name of the local network gateway used as the second endpoint 
-	for the connection. Required for a connection_type of 'IPSec'.
+    :param peer:
+        The reference to peerings resource. Required for a connection_type of 'ExpressRoute'. **CLEAN THIS UP
 
-    :param authorization_key: The authorizationKey.
+    :param connection_protocol: 
+	Connection protocol used for this connection. Possible values include: 'IKEv2', 'IKEv1'.
 
-    :param routing_weight: The routing weight.
+    :param shared_key:
+        The IPSEC shared key for the connection. Required for a connection_type of 'IPSec' or 'Vnet2Vnet'.
+        Defaults to a randomly generated key.
 
-    :param shared_key: The IPSec shared key. Required for a connection_type of 'IPSec'. 
-	Defaults to a randomly generated key. NEEDED FOR VNET2VNET AS WELL?
+    :param enable_bgp:
+        Whether BGP is enabled for this virtual network gateway connection or not. Defaults to False.
+        Both endpoints of the connection must have BGP enabled and may not have the same ASN values.
+	Cannot be enabled while use_policy_based_traffic_selectors is enabled.
 
-    :param enable_bgp: Whether BGP is enabled for this virtual network gateway or not. Defaults to False.
-	Both endpoints of the connection must have BGP enabled and may not have the same ASN values.
-
-    :param use_policy_based_traffic_selectors: Enable policy-based traffic selectors.
-
-    :param ipsec_policies: The IPSec Policies to be considered by this connection. Must be passed as a list containing
-	a single IPSec Policy dictionary that contains the following parameters:
-          - ``sa_life_time_seconds``: The IPSec Security Association (also called Quick Mode or Phase 2 SA) 
+    :param ipsec_policies:
+        The IPSec Policies to be considered by this connection. Must be passed as a list containing a single IPSec
+        Policy dictionary that contains the following parameters:
+          - ``sa_life_time_seconds``: The IPSec Security Association (also called Quick Mode or Phase 2 SA)
                                       lifetime in seconds for P2S client. Must be between 300 - 172799 seconds.
-          - ``sa_data_size_kilobytes``: The IPSec Security Association (also called Quick Mode or Phase 2 SA) payload 
-					size in KB for P2S client. Must be between 1024 - 2147483647 kilobytes.
-          - ``ipsec_encryption``: The IPSec encryption algorithm (IKE phase 1). Possible values include: 'None', 
-				  'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
-    	  - ``ipsec_integrity``: The IPSec integrity algorithm (IKE phase 1). Possible values include: 
-				 'MD5', 'SHA1', 'SHA256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
-    	  - ``ike_encryption``: The IKE encryption algorithm (IKE phase 2). Possible values include: 
-				'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES256', 'GCMAES128'
-          - ``ike_integrity``: The IKE integrity algorithm (IKE phase 2). Possible values include: 
-			       'MD5', 'SHA1', 'SHA256', 'SHA384', 'GCMAES256', 'GCMAES128'
-    	  - ``dh_group``: The DH Group used in IKE Phase 1 for initial SA. Possible values include: 
-			  'None', 'DHGroup1', 'DHGroup2', 'DHGroup14', 'DHGroup2048', 'ECP256', 'ECP384', 'DHGroup24'
-    	  - ``pfs_group``: The Pfs Group used in IKE Phase 2 for new child SA. Possible values include: 
-			   'None', 'PFS1', 'PFS2', 'PFS2048', 'ECP256', 'ECP384', 'PFS24', 'PFS14', 'PFSMM'
+          - ``sa_data_size_kilobytes``: The IPSec Security Association (also called Quick Mode or Phase 2 SA) payload
+                                        size in KB for P2S client. Must be between 1024 - 2147483647 kilobytes.
+          - ``ipsec_encryption``: The IPSec encryption algorithm (IKE phase 1). Possible values include: 'None',
+                                  'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
+          - ``ipsec_integrity``: The IPSec integrity algorithm (IKE phase 1). Possible values include:
+                                 'MD5', 'SHA1', 'SHA256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
+          - ``ike_encryption``: The IKE encryption algorithm (IKE phase 2). Possible values include:
+                                'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES256', 'GCMAES128'
+          - ``ike_integrity``: The IKE integrity algorithm (IKE phase 2). Possible values include:
+                               'MD5', 'SHA1', 'SHA256', 'SHA384', 'GCMAES256', 'GCMAES128'
+          - ``dh_group``: The DH Group used in IKE Phase 1 for initial SA. Possible values include:
+                          'None', 'DHGroup1', 'DHGroup2', 'DHGroup14', 'DHGroup2048', 'ECP256', 'ECP384', 'DHGroup24'
+          - ``pfs_group``: The Pfs Group used in IKE Phase 2 for new child SA. Possible values include:
+                           'None', 'PFS1', 'PFS2', 'PFS2048', 'ECP256', 'ECP384', 'PFS24', 'PFS14', 'PFSMM'
 
-    :param express_route_gateway_bypass: Bypass ExpressRoute Gateway for data forwarding. This is a bool value.
+    :param use_policy_based_traffic_selectors: 
+	Enable policy-based traffic selectors for a connection of type 'IPSec'. Cannot be enabled at the same time as BGP and requires that the 
+	IPSec policies are defined. This is a bool value.
+
+    :param routing_weight:
+        The routing weight. This is an int value.
+
+    :param express_route_gateway_bypass: 
+	Bypass ExpressRoute Gateway for data forwarding. This is a bool value.
+
+    :param authorization_key:
+        The authorizationKey. This is a string value.
 
     :param tags:
         A dictionary of strings can be passed as tag metadata to the virtual network gateway object.
@@ -2864,8 +2880,10 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
                 - name: connection1
                 - resource_group: group1
                 - virtual_network_gateway1: gateway1
-                - connection_type: Vnet2Vnet
+                - connection_type: 'Vnet2Vnet'
 		- virtual_network_gateway2: gateway2
+		- enable_bgp: False
+		- shared_key: 'key'
                 - tags:
                     contact_name: Elmer Fudd Gantry
                 - connection_auth: {{ profile }}
@@ -2878,8 +2896,11 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
                 - name: connection1
                 - resource_group: group1
                 - virtual_network_gateway1: gateway1
-                - connection_type: IPSec
+                - connection_type: 'IPSec'
 		- local_network_gateway2: local_gateway2
+                - enable_bgp: False
+		- shared_key: 'key'
+		- use_policy_based_traffic_selectors: True
 		- ipsec_policies:
                   - sa_life_time_seconds: 300
                     sa_data_size_kilobytes: 1024
@@ -2918,18 +2939,6 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
         tag_changes = __utils__['dictdiffer.deep_diff'](connection.get('tags', {}), tags or {})
         if tag_changes:
             ret['changes']['tags'] = tag_changes
-	
-	# Look into the following:
-	# routing_weight
-	# use_policy_based_traffic_selectors
-
-	# MAY NEED TO BE PUT INTO IPSEC AND VNET2VNET ONLY
-	if enable_bgp != None:
-            if enable_bgp != connection.get('enable_bgp'):
-                ret['changes']['enable_bgp'] = {
-	            'old': connection.get('enable_bgp'),
-		    'new': enable_bgp
-	        }
 
 	if connection_protocol != None:
             if connection_protocol != connection.get('connection_protocol'):
@@ -2953,28 +2962,47 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
 	                'old': connection.get('local_network_gateway2'),
 		        'new': local_network_gateway2
 	            }
-            
-	    if shared_key != None:
-                if shared_key != connection.get('shared_key'):
-                    ret['changes']['shared_key'] = {
-                        'old': connection.get('shared_key'),
-                        'new': shared_key
-		    }
-            
-	    if ipsec_policies != None:
-                comp_ret = __utils__['azurearm.compare_list_of_dicts'](
-                    connection.get('ipsec_policies', []),
-                    ipsec_policies
-                )
 
-                if comp_ret.get('comment'):
-                    ret['comment'] = '"ipsec_policies" {0}'.format(comp_ret['comment'])
+            if ipsec_policies != None:
+                if not isinstance(ipsec_policies, list):
+                    ret['comment'] = 'ipsec_policies must be provided as a list containing a single dictionary!'
                     return ret
 
-                if comp_ret.get('changes'):
-                    ret['changes']['ipsec_policies'] = comp_ret['changes']
+                try:
+                    policy = ipsec_policies[0]
+                except IndexError:
+                    ret['comment'] = 'ipsec_policies must be provided as a list containing a single dictionary!'
+                    return ret
 
-	if connection_type == 'Vnet2Vnet':
+                if not isinstance(policy, dict):
+                    ret['comment'] = 'ipsec_policies must be provided as a list containing a single dictionary!'
+                    return ret
+
+                if len(connection.get('ipsec_policies', [])) == 1:
+                    connection_policy = connection.get('ipsec_policies')[0]
+
+                    for key in policy.keys():
+                        if policy[key] != connection_policy.get(key):
+                            ret['changes']['ipsec_policies'] = {
+                                'old': connection.get('ipsec_policies', []),
+                                'new': ipsec_policies
+                            }
+                            break
+
+                else:
+                    ret['changes']['ipsec_policies'] = {
+                        'old': connection.get('ipsec_policies', []),
+                        'new': ipsec_policies
+                    }
+
+            if use_policy_based_traffic_selectors != None:
+                if use_policy_based_traffic_selectors != connection.get('use_policy_based_traffic_selectors'):
+                    ret['changes']['use_policy_based_traffic_selectors'] = {
+                        'old': connection.get('use_policy_based_traffic_selectors'),
+                        'new': use_policy_based_traffic_selectors
+                    }
+            
+        if connection_type == 'Vnet2Vnet':
 
             vnetgw2 = __salt__['azurearm_network.virtual_network_gateway_get'](
                 virtual_network_gateway2,
@@ -2988,17 +3016,31 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
                     ret['changes']['virtual_network_gateway2'] = {
                         'old': connection.get('virtual_network_gateway2'),
                         'new': virtual_network_gateway2
-                    }	
+                    }
+
+        if connection_type == 'Vnet2Vnet' or connection_type == 'IPSec':
+
+            if enable_bgp != None:
+                if enable_bgp != connection.get('enable_bgp'):
+                    ret['changes']['enable_bgp'] = {
+                        'old': connection.get('enable_bgp'),
+                        'new': enable_bgp
+                    }
+
 	    if shared_key != None:
-	        if shared_key != connection.get('shared_key'):
-		    ret['changes']['shared_key'] = {
-		        'old': connection.get('shared_key'),
-		        'new': shared_key
+                if shared_key != connection.get('shared_key'):
+                    ret['changes']['shared_key'] = {
+                        'old': connection.get('shared_key'),
+                        'new': shared_key
 		    }
 
+            
+	'''
 	if connection_type == 'ExpressRoute':
-	    
-	    # express_route_gateway_bypass
+	 
+	    # Peer is used here to get the ID of an ExpressRoute
+	    # Look into this ***
+
 	    if authorization_key != None:
                 if authorization_key != connection.get('authorization_key'):
                     ret['changes']['authorization_key'] = {
@@ -3006,8 +3048,23 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
                         'new': enable_bgp
 		    }
 
-	'''
+	    if routing_weight != None:
+		if routing_weight != connection.get('routing_weight'):
+		    ret['changes']['routing_weight'] = {
+			'old': connection.get('routing_weight'),
+			'new': routing_weight
+		    }
+
+	    if express_route_gateway_bypass != None:
+		if express_route_gateway_bypass != connection.get('express_route_gateway_bypass'):
+		    ret['changes']['express_route_gateway_bypass'] = {
+			'old': connection.get('express_route_gateway_bypass'),
+			'new': express_route_gateway_bypass
+		    }
+	
+
 	if connection_type == 'VPNClient':
+	Look into internal server error
 	
 	'''
 
@@ -3029,12 +3086,11 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
                 'resource_group': resource_group,
                 'virtual_network_gateway1': virtual_network_gateway1,
                 'connection_type': connection_type,
-                'tags': tags,
             }
         }
 
-	if authorization_key != None:
-	    ret['changes']['new']['authorization_key'] = authorization_key
+        if tags != None:
+            ret['changes']['new']['tags'] = tags
         if enable_bgp != None:
             ret['changes']['new']['enable_bgp'] = enable_bgp
         if connection_protocol != None:
@@ -3047,7 +3103,19 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
 	    ret['changes']['new']['ipsec_policies'] = ipsec_policies
         if virtual_network_gateway2 != None:
             ret['changes']['new']['virtual_network_gateway2'] = virtual_network_gateway2
-
+	if express_route_gateway_bypass != None:
+	    ret['changes']['new']['express_route_gateway_bypass'] = express_route_gateway_bypass
+	if use_policy_based_traffic_selectors != None:
+	    ret['changes']['new']['use_policy_based_traffic_selectors'] = use_policy_based_traffic_selectors
+	'''
+	ExpressRoute stuff
+        if authorization_key != None:
+            ret['changes']['new']['authorization_key'] = authorization_key
+        if peer != None:
+            ret['changes']['new']['peer'] = peer
+        if routing_weight != None:
+            ret['changes']['new']['routing_weight'] = routing_weight
+	'''
 
     if __opts__['test']:
         ret['comment'] = 'Virtual network gateway connection {0} would be created.'.format(name)
@@ -3077,6 +3145,31 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
             shared_key=shared_key,
 	    ipsec_policies=ipsec_policies,
 	    local_network_gateway2=localgw2,
+	    use_policy_based_traffic_selectors=use_policy_based_traffic_selectors,
+            tags=tags,
+            **connection_kwargs
+        )
+
+    if connection_type == 'Vnet2Vnet':
+        # Get a VirtualNetWorkGateway Object using the name of the Virtual Network Gateway that
+        # the connection will use as its second endpoint.
+        vnetgw2 = __salt__['azurearm_network.virtual_network_gateway_get'](
+            virtual_network_gateway2,
+            resource_group,
+            azurearm_log_level='info',
+            **connection_auth
+        )
+
+        connection =  __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
+            name=name,
+            resource_group=resource_group,
+            virtual_network_gateway1=virtual_network_gateway1,
+            connection_type=connection_type,
+            connection_protocol=connection_protocol,
+            enable_bgp=enable_bgp,
+            shared_key=shared_key,
+            virtual_network_gateway2=vnetgw2,
+	    use_policy_based_traffic_selectors=use_policy_based_traffic_selectors,
             tags=tags,
             **connection_kwargs
         )
@@ -3318,17 +3411,19 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
             if comp_ret.get('changes'):
                 ret['changes']['ip_configurations'] = comp_ret['changes']
 
-        if (active_active or False) != gateway.get('active_active'):
-            ret['changes']['active_active'] = {
-                'old': gateway.get('active_active'),
-                'new': active_active
-            }
+	if active_active != None:
+            if active_active != gateway.get('active_active'):
+                ret['changes']['active_active'] = {
+                    'old': gateway.get('active_active'),
+                    'new': active_active
+                }
 
-        if (enable_bgp or False) != gateway.get('enable_bgp'):
-            ret['changes']['enable_bgp'] = {
-	        'old': gateway.get('enable_bgp'),
-		'new': enable_bgp
-	    }
+	if enable_bgp != None:
+            if enable_bgp != gateway.get('enable_bgp'):
+                ret['changes']['enable_bgp'] = {
+	            'old': gateway.get('enable_bgp'),
+		    'new': enable_bgp
+	        }
 
         if sku:
             sku_changes = __utils__['dictdiffer.deep_diff'](gateway.get('sku', {}), sku)
@@ -3399,10 +3494,10 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
         ret['comment'] = 'Virtual network gateway {0} would be created.'.format(name)
         ret['result'] = None
         return ret
-
+ 
     gateway_kwargs = kwargs.copy()
     gateway_kwargs.update(connection_auth)
-
+    
     gateway = __salt__['azurearm_network.virtual_network_gateway_create_or_update'](
         name=name,
         resource_group=resource_group,
