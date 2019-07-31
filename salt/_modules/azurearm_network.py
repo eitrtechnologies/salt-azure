@@ -2766,9 +2766,9 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
 	be the first endpoint of the connection.
 
     :param connection_type: Gateway connection type. Possible values include:
-        'IPsec', 'Vnet2Vnet', 'ExpressRoute', 'VPNClient'
+        'IPsec', 'Vnet2Vnet', and 'ExpressRoute'
 
-    A second endpoint must be passed as a keyword argument. It can be a VirtualNetworkGateway, a 
+    A second endpoint must be passed as a keyword argument. This endpoint may be a VirtualNetworkGateway, a 
 	LocalNetworkGateway, or a ExpressRouteCircuit depending on the connection_type.
 
     CLI Example:
@@ -2776,7 +2776,7 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_name test_group \
-		  test_net_gw1 test_connection_type
+		  test_vnet_gw1 test_connection_type
 
     '''
     if 'location' not in kwargs:
@@ -3093,14 +3093,15 @@ def virtual_network_gateway_create_or_update(name, resource_group, virtual_netwo
           - ``private_ip_allocation_method``: The private IP allocation method. Possible values are:
                                               'Static' and 'Dynamic'.
           - ``subnet``: Name of an existing subnet inside of which the IP config will reside.
-        The 'name' & 'public_ip_address' keys are required at minimum. Only one IP configuration dictionary is allowed.
+        If the active_active keyword argument is disabled, only one IP configuration dictionary is permitted. 
+        If the active_active keyword argument is enabled, two IP configuration dictionaries are required.
  
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_peering_create_or_update test_name test_group \
-		  test_net test_ipconfigs
+        salt-call azurearm_network.virtual_network_gateway_create_or_update test_name test_group \
+		  test_vnet test_ip_configs
 
     '''
     if 'location' not in kwargs:
@@ -3278,7 +3279,7 @@ def virtual_network_gateway_reset(name, resource_group, gateway_vip=None, **kwar
     :param resource_group: The name of the resource group.
 
     :param gateway_vip: Virtual network gateway vip address supplied to the begin 
-        reset of the active-active feature enabled gateway. Defaults to None.
+        reset of the active-active feature enabled gateway.
 
     CLI Example:
 
@@ -3338,7 +3339,9 @@ def virtual_network_gateway_reset_vpn_client_shared_key(name, resource_group, **
     return result
 
 
-def virtual_network_gateway_generatevpnclientpackage(name, resource_group, **kwargs):
+def virtual_network_gateway_generatevpnclientpackage(name, resource_group, processor_architecture, 
+                                                     authentication_method, radius_server_auth_certificate,
+                                                     client_root_certificates, **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -3349,14 +3352,22 @@ def virtual_network_gateway_generatevpnclientpackage(name, resource_group, **kwa
 
     :param resource_group: The name of the resource group.
 
-    The parameters for a valid VpnClientParameters object must be passed
-	as keyword arguments.
+    :param processor_architecture: VPN client Processor Architecture. Possible values include: 'Amd64', 'X86'
+
+    :param authentication_method: VPN client authentication method. Possible values include: 'EAPTLS', 'EAPMSCHAPv2'
+
+    :param radius_server_auth_certificate: The public certificate data for the radius server authentication
+        certificate as a Base-64 encoded string. Required only if external radius authentication has been configured
+        with EAPTLS authentication.
+
+    :param client_root_certificates: A list of client root certificates public certificate data encoded as Base-64
+        strings. Optional parameter for external radius based authentication with EAPTLS.
  
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_generatevpnclientpackage test_name test_group
+        salt-call azurearm_network.virtual_network_gateway_generatevpnclientpackage test_name test_group test_params
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3365,7 +3376,10 @@ def virtual_network_gateway_generatevpnclientpackage(name, resource_group, **kwa
         pkgmodel = __utils__['azurearm.create_object_model'](
             'network',
             'VpnClientParameters',
-            **kwargs
+            processor_architecture=processor_architecture,
+            authentication_method=authentication_method,
+            radius_server_auth_certificate=radius_server_auth_certificate,
+            client_root_certificates=client_root_certificates
         )
     except TypeError as exc:
         result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
@@ -3375,7 +3389,8 @@ def virtual_network_gateway_generatevpnclientpackage(name, resource_group, **kwa
         pkg = netconn.virtual_network_gateways.generatevpnclientpackage(
             resource_group_name=resource_group,
             virtual_network_gateway_name=name,
-            parameters=pkgmodel
+            parameters=pkgmodel,
+            **kwargs
         )
 
         result = pkg
@@ -3388,7 +3403,8 @@ def virtual_network_gateway_generatevpnclientpackage(name, resource_group, **kwa
     return result
 
 
-def virtual_network_gateway_generate_vpn_profile(name, resource_group, **kwargs):
+def virtual_network_gateway_generate_vpn_profile(name, resource_group, processor_architecture, authentication_method,
+                                                 radius_server_auth_certificate, client_root_certificates, **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -3399,13 +3415,22 @@ def virtual_network_gateway_generate_vpn_profile(name, resource_group, **kwargs)
 
     :param resource_group: The name of the resource group.
 
-    The parameters for a valid VpnClientParameters object must be passed                                                                                                                                          as keyword arguments. 
+    :param processor_architecture: VPN client Processor Architecture. Possible values include: 'Amd64', 'X86'
+    
+    :param authentication_method: VPN client authentication method. Possible values include: 'EAPTLS', 'EAPMSCHAPv2'
+    
+    :param radius_server_auth_certificate: The public certificate data for the radius server authentication
+        certificate as a Base-64 encoded string. Required only if external radius authentication has been configured
+        with EAPTLS authentication.
+    
+    :param client_root_certificates: A list of client root certificates public certificate data encoded as Base-64 
+                                     strings. Optional parameter for external radius based authentication with EAPTLS.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_generate_vpn_profile test_name test_group
+        salt-call azurearm_network.virtual_network_gateway_generate_vpn_profile test_name test_group test_params
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3414,7 +3439,10 @@ def virtual_network_gateway_generate_vpn_profile(name, resource_group, **kwargs)
         profilemodel = __utils__['azurearm.create_object_model'](
             'network',
             'VpnClientParameters',
-            **kwargs
+            processor_architecture=processor_architecture,
+            authentication_method=authentication_method,
+            radius_server_auth_certificate=radius_server_auth_certificate,
+            client_root_certificates=client_root_certificates
         )
     except TypeError as exc:
         result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
@@ -3424,7 +3452,8 @@ def virtual_network_gateway_generate_vpn_profile(name, resource_group, **kwargs)
         profile = netconn.virtual_network_gateways.generate_vpn_profile(
             resource_group_name=resource_group,
             virtual_network_gateway_name=name,
-            parameters=profilemodel
+            parameters=profilemodel,
+            **kwargs
         )
 
         result = profile
@@ -3452,7 +3481,7 @@ def virtual_network_gateway_get_vpn_profile_package_url(name, resource_group, **
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_vpn_profile_package_url test_name test_group
+        salt-call azurearm_network.virtual_network_gateway_get_vpn_profile_package_url test_name test_group
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3480,13 +3509,13 @@ def virtual_network_gateway_get_bgp_peer_status(name, resource_group, peer=None,
 
     :param resource_group: The name of the resource group.
 
-    :param peer: The IP address of the peer to retrieve the status of. Defaults to None.
+    :param peer: The IP address of the peer to retrieve the status of.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_bgp_peer_status test_name test_group
+        salt-call azurearm_network.virtual_network_gateway_get_bgp_peer_status test_name test_group test_peer
 
     '''
     result = {}
@@ -3499,8 +3528,8 @@ def virtual_network_gateway_get_bgp_peer_status(name, resource_group, peer=None,
         )
 
         peers_result = peers.result().as_dict()
-        for peer in peers_result['value']:    
-            result['BGP peer'] = peer
+        for bgp_peer in peers_result['value']:    
+            result['BGP peer'] = bgp_peer
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
@@ -3522,7 +3551,7 @@ def virtual_network_gateway_supported_vpn_devices(name, resource_group, **kwargs
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_supported_vpn_devices test_name test_group
+        salt-call azurearm_network.virtual_network_gateway_supported_vpn_devices test_name test_group
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3555,7 +3584,7 @@ def virtual_network_gateway_get_learned_routes(name, resource_group, **kwargs):
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_learned_routes test_name test_group 
+        salt-call azurearm_network.virtual_network_gateway_get_learned_routes test_name test_group 
 
     '''
     result = {}
@@ -3591,8 +3620,7 @@ def virtual_network_gateway_get_advertised_routes(name, resource_group, peer, **
     CLI Example:                                                                                                                             
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_get_learned_routes test_name \
-		  test_group test_peer
+        salt-call azurearm_network.virtual_network_gateway_get_learned_routes test_name test_group test_peer
 
     '''
     result = {}
@@ -3675,8 +3703,7 @@ def virtual_network_gateway_set_vpnclient_ipsec_parameters(name, resource_group,
             ike_encryption=ike_encryption,
             ike_integrity=ike_integrity,
             dh_group=dh_group,
-            pfs_group=pfs_group,
-            **kwargs
+            pfs_group=pfs_group
         )
     except TypeError as exc:
         result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
@@ -3686,7 +3713,8 @@ def virtual_network_gateway_set_vpnclient_ipsec_parameters(name, resource_group,
         params = netconn.virtual_network_gateways.set_vpnclient_ipsec_parameters(
             resource_group_name=resource_group,
             virtual_network_gateway_name=name,
-            vpnclient_ipsec_params=paramsmodel
+            vpnclient_ipsec_params=paramsmodel,
+            **kwargs
         )
 
         params_result = params.result()
@@ -3712,8 +3740,7 @@ def virtual_network_gateway_get_vpnclient_ipsec_parameters(name, resource_group,
     CLI Example:
     .. code-block:: bash
     
-        salt-call azurearm_network.virtual_network_get_vpnclient_ipsec_parameters \
-		  test_name test_group
+        salt-call azurearm_network.virtual_network_gateway_get_vpnclient_ipsec_parameters test_name test_group
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3753,7 +3780,7 @@ def virtual_network_gateway_vpn_device_configuration_script(name, resource_group
     CLI Example:
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_vpn_device_configuration_script test_name test_group \ 
+        salt-call azurearm_network.virtual_network_gateway_vpn_device_configuration_script test_name test_group \ 
 	          test_vendor test_device_fam test_version
 
     '''
@@ -3766,7 +3793,6 @@ def virtual_network_gateway_vpn_device_configuration_script(name, resource_group
             vendor=vendor,
             device_family=device_family,
 	    firmware_version=firmware_version,
-            **kwargs
         )
     except TypeError as exc:
         result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
@@ -3776,7 +3802,8 @@ def virtual_network_gateway_vpn_device_configuration_script(name, resource_group
         script = netconn.virtual_network_gateways.vpn_device_configuration_script(
             resource_group_name=resource_group,
             virtual_network_gateway_connection_name=name,
-            parameters=scriptmodel
+            parameters=scriptmodel,
+            **kwargs
         )
 
         result = script 
