@@ -7,16 +7,16 @@ Azure (ARM) Network Execution Module
 :maintainer: <devops@eitr.tech>
 :maturity: new
 :depends:
-    * `azure <https://pypi.python.org/pypi/azure>`_ >= 2.0.0
-    * `azure-common <https://pypi.python.org/pypi/azure-common>`_ >= 1.1.8
-    * `azure-mgmt <https://pypi.python.org/pypi/azure-mgmt>`_ >= 1.0.0
-    * `azure-mgmt-compute <https://pypi.python.org/pypi/azure-mgmt-compute>`_ >= 1.0.0
-    * `azure-mgmt-network <https://pypi.python.org/pypi/azure-mgmt-network>`_ >= 1.7.1
-    * `azure-mgmt-resource <https://pypi.python.org/pypi/azure-mgmt-resource>`_ >= 1.1.0
-    * `azure-mgmt-storage <https://pypi.python.org/pypi/azure-mgmt-storage>`_ >= 1.0.0
-    * `azure-mgmt-web <https://pypi.python.org/pypi/azure-mgmt-web>`_ >= 0.32.0
-    * `azure-storage <https://pypi.python.org/pypi/azure-storage>`_ >= 0.34.3
-    * `msrestazure <https://pypi.python.org/pypi/msrestazure>`_ >= 0.4.21
+    * `azure <https://pypi.python.org/pypi/azure>`_ >= 4.0.0
+    * `azure-common <https://pypi.python.org/pypi/azure-common>`_ >= 1.1.23
+    * `azure-mgmt <https://pypi.python.org/pypi/azure-mgmt>`_ >= 4.0.0
+    * `azure-mgmt-compute <https://pypi.python.org/pypi/azure-mgmt-compute>`_ >= 4.6.2
+    * `azure-mgmt-network <https://pypi.python.org/pypi/azure-mgmt-network>`_ >= 4.0.0
+    * `azure-mgmt-resource <https://pypi.python.org/pypi/azure-mgmt-resource>`_ >= 2.2.0
+    * `azure-mgmt-storage <https://pypi.python.org/pypi/azure-mgmt-storage>`_ >= 2.0.0
+    * `azure-mgmt-web <https://pypi.python.org/pypi/azure-mgmt-web>`_ >= 0.35.0
+    * `azure-storage <https://pypi.python.org/pypi/azure-storage>`_ >= 0.36.0
+    * `msrestazure <https://pypi.python.org/pypi/msrestazure>`_ >= 0.6.1
 :platform: linux
 
 :configuration: This module requires Azure Resource Manager credentials to be passed as keyword arguments
@@ -61,6 +61,8 @@ except ImportError:
 HAS_LIBS = False
 try:
     import azure.mgmt.network.models  # pylint: disable=unused-import
+    from msrestazure.tools import is_valid_resource_id
+    from msrestazure.tools import parse_resource_id
     from msrest.exceptions import SerializationError
     from msrestazure.azure_exceptions import CloudError
     HAS_LIBS = True
@@ -2751,32 +2753,38 @@ def route_tables_list_all(**kwargs):
     return result
 
 
-def virtual_network_gateway_connection_create_or_update(name, resource_group, virtual_network_gateway1, 
-							connection_type, **kwargs):
+def virtual_network_gateway_connection_create_or_update(name, resource_group, virtual_network_gateway1,
+                                                        connection_type, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Creates or updates a virtual network gateway connection in the specified resource group.
 
-    :param name: The name of the virtual network gateway connection to create or update. 
+    :param name: The name of the virtual network gateway connection to create or update.
 
     :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway1: The name of the virtual network gateway that will 
-	be the first endpoint of the connection.
+    :param virtual_network_gateway1: The name of the virtual network gateway that will
+        be the first endpoint of the connection. This is immutable once set.
 
     :param connection_type: Gateway connection type. Possible values include:
-        'IPsec', 'Vnet2Vnet', and 'ExpressRoute'
+        'IPsec', 'Vnet2Vnet', and 'ExpressRoute'. This is immutable once set.
 
-    A second endpoint must be passed as a keyword argument. This endpoint may be a VirtualNetworkGateway, a 
-	LocalNetworkGateway, or a ExpressRouteCircuit depending on the connection_type.
+    A second endpoint must be passed as a keyword argument:
+      - For a connection of type 'Vnet2Vnet' a valid Resource ID representing a VirtualNetworkGateway Object must be
+        passed as the virtual_network_gateway2 kwarg.
+      - For a connection of type 'IPSec' a valid Resource ID representing a LocalNetworkGateway Object must be passed
+        as the local_network_gateway2 kwarg.
+      - For a connection of type 'ExpressRoute' a valid Resource ID representing an ExpressRouteCircuit Object must be
+        passed as the peer kwarg.
+    The second endpoint is immutable once set.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_name test_group \
-		  test_vnet_gw1 test_connection_type
+        salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_name test_group
+                  test_vnet_gw1 test_connection_type
 
     '''
     if 'location' not in kwargs:
@@ -2793,20 +2801,150 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
 
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
 
-    # Get a VirtualNetWorkGateway Object using the name of the Virtual Network 
-    # Gateway that the connection will originate from.
-    vnetgw = virtual_network_gateway_get( 
-	name=virtual_network_gateway1,
-        resource_group=resource_group,
-        **kwargs
-    )
+    # Converts the Resource ID of virtual_network_gateway1 into a VirtualNetworkGateway Object.
+    # This endpoint will be where the connection originates.
+    if virtual_network_gateway1:
+        if not is_valid_resource_id(virtual_network_gateway1):
+            log.error(
+                'Invalid Resource ID was specified as virtual_network_gateway1!'
+            )
+            return False
+
+        vnetgw1_parsed_id = parse_resource_id(virtual_network_gateway1)
+        if not isinstance(vnetgw1_parsed_id, dict):
+            log.error(
+                'Invalid Resource ID was specified as virtual_network_gateway1!'
+            )
+            return False
+        else:
+            if vnetgw1_parsed_id['resource_group']:
+                vnetgw1_rg = vnetgw1_parsed_id['resource_group']
+            else:
+                log.error(
+                    'Invalid Resource ID was specified as virtual_network_gateway1!'
+                )
+                return False
+
+            if vnetgw1_parsed_id['resource_name']:
+                vnetgw1_name = vnetgw1_parsed_id['resource_name']
+            else:
+                log.error(
+                    'Invalid Resource ID was specified as virtual_network_gateway1!'
+                )
+                return False
+
+            vnetgw1 = virtual_network_gateway_get(
+                name=vnetgw1_name,
+                resource_group=vnetgw1_rg,
+                **kwargs
+            )
+
+            if 'error' in vnetgw1:
+                log.error(
+                    'Invalid Resource ID was specified as virtual_network_gateway1!'
+                )
+                return False
+            else:
+                virtual_network_gateway1 = vnetgw1
+
+    # Converts the Resource ID of virtual_network_gateway2 into a VirtualNetworkGateway Object
+    # This will serve as the second endpoint for a connection of type 'Vnet2Vnet'
+    if kwargs.get('virtual_network_gateway2'):
+        if not is_valid_resource_id(kwargs.get('virtual_network_gateway2')):
+            log.error(
+                'Invalid Resource ID was specified as virtual_network_gateway2!'
+            )
+            return False
+
+        vnetgw2_parsed_id = parse_resource_id(kwargs.get('virtual_network_gateway2'))
+        if not isinstance(vnetgw2_parsed_id, dict):
+            log.error(
+                'Invalid Resource ID was specified as virtual_network_gateway2!'
+            )
+            return False
+        else:
+            if vnetgw2_parsed_id['resource_group']:
+                vnetgw2_rg = vnetgw2_parsed_id['resource_group']
+            else:
+                log.error(
+                    'Invalid Resource ID was specified as virtual_network_gateway2!'
+                )
+                return False
+
+            if vnetgw2_parsed_id['resource_name']:
+                vnetgw2_name = vnetgw2_parsed_id['resource_name']
+            else:
+                log.error(
+                    'Invalid Resource ID was specified as virtual_network_gateway2!'
+                )
+                return False
+
+            vnetgw2 = virtual_network_gateway_get(
+                name=vnetgw2_name,
+                resource_group=vnetgw2_rg,
+                **kwargs
+            )
+
+            if 'error' in vnetgw2:
+                log.error(
+                    'Invalid Resource ID was specified as virtual_network_gateway2!'
+                )
+                return False
+            else:
+                kwargs['virtual_network_gateway2'] = vnetgw2
+
+    # Converts the Resource ID of local_network_gateway1 into a LocalNetworkGateway Object
+    # This will serve as the second endpoint for a connection of type 'IPSec'
+    if kwargs.get('local_network_gateway2'):
+        if not is_valid_resource_id(kwargs.get('local_network_gateway2')):
+            log.error(
+                'Invalid Resource ID was specified as local_network_gateway2!'
+            )
+            return False
+
+        lnetgw2_parsed_id = parse_resource_id(kwargs.get('local_network_gateway2'))
+        if not isinstance(lnetgw2_parsed_id, dict):
+            log.error(
+                'Invalid Resource ID was specified as local_network_gateway2!'
+            )
+            return False
+        else:
+            if lnetgw2_parsed_id['resource_group']:
+                lnetgw2_rg = lnetgw2_parsed_id['resource_group']
+            else:
+                log.error(
+                    'Invalid Resource ID was specified as local_network_gateway2!'
+                )
+                return False
+
+            if lnetgw2_parsed_id['resource_name']:
+                lnetgw2_name = lnetgw2_parsed_id['resource_name']
+            else:
+                log.error(
+                    'Invalid Resource ID was specified as local_network_gateway2!'
+                )
+                return False
+
+            lnetgw2 = local_network_gateway_get(
+                name=lnetgw2_name,
+                resource_group=lnetgw2_rg,
+                **kwargs
+            )
+
+            if 'error' in lnetgw2:
+                log.error(
+                    'Invalid Resource ID was specified as local_network_gateway2!'
+                )
+                return False
+            else:
+                kwargs['local_network_gateway2'] = lnetgw2
 
     try:
         connectionmodel = __utils__['azurearm.create_object_model'](
             'network',
             'VirtualNetworkGatewayConnection',
-            virtual_network_gateway1=vnetgw,
-	    connection_type=connection_type,
+            virtual_network_gateway1=vnetgw1,
+            connection_type=connection_type,
             **kwargs
         )
     except TypeError as exc:
@@ -2869,7 +3007,7 @@ def virtual_network_gateway_connection_delete(name, resource_group, **kwargs):
 
     Deletes the specified virtual network gateway connection.
 
-    :param name: The name of the virtual network gateway connection that will be deleted. 
+    :param name: The name of the virtual network gateway connection that will be deleted.
 
     :param resource_group: The name of the resource group.
 
@@ -2901,7 +3039,7 @@ def virtual_network_gateway_connection_set_shared_key(name, resource_group, valu
 
     Sets the shared key for a virtual network gateway connection object.
 
-    :param name: The virtual network gateway connection name. 
+    :param name: The virtual network gateway connection name.
 
     :param resource_group: The name of the resource group.
 
@@ -2912,12 +3050,12 @@ def virtual_network_gateway_connection_set_shared_key(name, resource_group, valu
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_connection_set_shared_key test_name \
-		  test_group test_value
+                  test_group test_value
 
     '''
     result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
-    
+
     try:
         key = netconn.virtual_network_gateway_connections.set_shared_key(
             resource_group_name=resource_group,
@@ -2939,9 +3077,9 @@ def virtual_network_gateway_connection_get_shared_key(name, resource_group, **kw
     .. versionadded:: Sodium
 
     Gets information about the specified virtual network gateway connection shared key
-	through the Network resource provider.
+        through the Network resource provider.
 
-    :param name: The virtual network gateway connection shared key name. 
+    :param name: The virtual network gateway connection shared key name.
 
     :param resource_group: The name of the resource group.
 
@@ -2974,18 +3112,18 @@ def virtual_network_gateway_connection_reset_shared_key(name, resource_group, ke
     Resets the virtual network gateway connection shared key for passed virtual network
         gateway connection in the specified resource group through Network resource provider.
 
-    :param name: The name of the virtual network gateway connection that will have its shared key reset. 
+    :param name: The name of the virtual network gateway connection that will have its shared key reset.
 
     :param resource_group: The name of the resource group.
 
-    :param key_length: The virtual network connection reset shared key length, should between 1 and 128. 
-	Defaults to 128.
+    :param key_length: The virtual network connection reset shared key length, should between 1 and 128.
+        Defaults to 128.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_connection_set_shared_key test_name \ 
+        salt-call azurearm_network.virtual_network_gateway_connection_set_shared_key test_name \
                   test_group test_key_length
 
     '''
@@ -3073,14 +3211,14 @@ def virtual_network_gateways_list(resource_group, **kwargs):
     return result
 
 
-def virtual_network_gateway_create_or_update(name, resource_group, virtual_network, 
+def virtual_network_gateway_create_or_update(name, resource_group, virtual_network,
                                              ip_configurations, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Creates or updates a virtual network gateway in the specified resource group. 
+    Creates or updates a virtual network gateway in the specified resource group.
 
-    :param name: The name of the virtual network gateway to be created or updated. 
+    :param name: The name of the virtual network gateway to be created or updated.
 
     :param resource_group: The name of the resource group.
 
@@ -3093,15 +3231,15 @@ def virtual_network_gateway_create_or_update(name, resource_group, virtual_netwo
           - ``private_ip_allocation_method``: The private IP allocation method. Possible values are:
                                               'Static' and 'Dynamic'.
           - ``subnet``: Name of an existing subnet inside of which the IP config will reside.
-        If the active_active keyword argument is disabled, only one IP configuration dictionary is permitted. 
+        If the active_active keyword argument is disabled, only one IP configuration dictionary is permitted.
         If the active_active keyword argument is enabled, two IP configuration dictionaries are required.
- 
+
     CLI Example:
 
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_create_or_update test_name test_group \
-		  test_vnet test_ip_configs
+                  test_vnet test_ip_configs
 
     '''
     if 'location' not in kwargs:
@@ -3175,16 +3313,16 @@ def virtual_network_gateway_get(name, resource_group, **kwargs):
 
     Gets the details of a specific virtual network gateway within a specified resource group.
 
-    :param name: The name of the virtual network gateway. 
+    :param name: The name of the virtual network gateway.
 
-    :param resource_group: The name of the resource group. 
+    :param resource_group: The name of the resource group.
 
     CLI Example:
-    
+
     .. code-block:: bash
-        
+
         salt-call azurearm_network.virtual_network_gateway_get test_name test_group
-    
+
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
@@ -3198,7 +3336,7 @@ def virtual_network_gateway_get(name, resource_group, **kwargs):
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
 
-    return result 
+    return result
 
 
 def virtual_network_gateway_delete(name, resource_group, **kwargs):
@@ -3209,14 +3347,14 @@ def virtual_network_gateway_delete(name, resource_group, **kwargs):
 
     :param name: The name of the virtual network gateway that will be deleted.
 
-    :param resource_group: The name of the resource group. 
+    :param resource_group: The name of the resource group.
 
     CLI Example:
 
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_delete test_name test_group
-    
+
     '''
     result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3239,7 +3377,7 @@ def virtual_network_gateway_list_connections(name, resource_group, **kwargs):
 
     Lists all connections associated with a virtual network gateway.
 
-    :param name: The name of the virtual network gateway.     
+    :param name: The name of the virtual network gateway.
 
     :param resource_group: The name of the resource group.
 
@@ -3278,7 +3416,7 @@ def virtual_network_gateway_reset(name, resource_group, gateway_vip=None, **kwar
 
     :param resource_group: The name of the resource group.
 
-    :param gateway_vip: Virtual network gateway vip address supplied to the begin 
+    :param gateway_vip: Virtual network gateway vip address supplied to the begin
         reset of the active-active feature enabled gateway.
 
     CLI Example:
@@ -3319,7 +3457,7 @@ def virtual_network_gateway_reset_vpn_client_shared_key(name, resource_group, **
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_reset_vpn_client_shared_key test_name test_group 
+        salt-call azurearm_network.virtual_network_gateway_reset_vpn_client_shared_key test_name test_group
 
     '''
     result = {}
@@ -3339,13 +3477,13 @@ def virtual_network_gateway_reset_vpn_client_shared_key(name, resource_group, **
     return result
 
 
-def virtual_network_gateway_generatevpnclientpackage(name, resource_group, processor_architecture, 
-                                                     authentication_method, radius_server_auth_certificate,
-                                                     client_root_certificates, **kwargs):
+def virtual_network_gateway_generatevpnclientpackage(name, resource_group, processor_architecture,
+                                                     authentication_method, radius_server_auth_certificate=None,
+                                                     client_root_certificates=None, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Generates VPN client package for P2S client of the virtual network 
+    Generates VPN client package for P2S client of the virtual network
         gateway in the specified resource group.
 
     :param name: The name of the virtual network gateway.
@@ -3362,7 +3500,7 @@ def virtual_network_gateway_generatevpnclientpackage(name, resource_group, proce
 
     :param client_root_certificates: A list of client root certificates public certificate data encoded as Base-64
         strings. Optional parameter for external radius based authentication with EAPTLS.
- 
+
     CLI Example:
 
     .. code-block:: bash
@@ -3404,26 +3542,27 @@ def virtual_network_gateway_generatevpnclientpackage(name, resource_group, proce
 
 
 def virtual_network_gateway_generate_vpn_profile(name, resource_group, processor_architecture, authentication_method,
-                                                 radius_server_auth_certificate, client_root_certificates, **kwargs):
+                                                 radius_server_auth_certificate=None, client_root_certificates=None,
+                                                 **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Generates VPN profile for P2S client of the virtual network gateway in the 
-	specified resource group. Used for IKEV2 and radius based authentication.
+    Generates VPN profile for P2S client of the virtual network gateway in the
+        specified resource group. Used for IKEV2 and radius based authentication.
 
     :param name: The name of the virtual network gateway.
 
     :param resource_group: The name of the resource group.
 
     :param processor_architecture: VPN client Processor Architecture. Possible values include: 'Amd64', 'X86'
-    
+
     :param authentication_method: VPN client authentication method. Possible values include: 'EAPTLS', 'EAPMSCHAPv2'
-    
+
     :param radius_server_auth_certificate: The public certificate data for the radius server authentication
         certificate as a Base-64 encoded string. Required only if external radius authentication has been configured
         with EAPTLS authentication.
-    
-    :param client_root_certificates: A list of client root certificates public certificate data encoded as Base-64 
+
+    :param client_root_certificates: A list of client root certificates public certificate data encoded as Base-64
                                      strings. Optional parameter for external radius based authentication with EAPTLS.
 
     CLI Example:
@@ -3463,14 +3602,14 @@ def virtual_network_gateway_generate_vpn_profile(name, resource_group, processor
     except SerializationError as exc:
         result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
 
-    return result    
+    return result
 
 
 def virtual_network_gateway_get_vpn_profile_package_url(name, resource_group, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Gets pre-generated VPN profile for P2S client of the virtual network gateway in the 
+    Gets pre-generated VPN profile for P2S client of the virtual network gateway in the
         specified resource group.
 
     :param name: The name of the virtual network gateway.
@@ -3492,6 +3631,41 @@ def virtual_network_gateway_get_vpn_profile_package_url(name, resource_group, **
         )
 
         result = url.result()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def virtual_network_gateway_get_vpnclient_connection_health(name, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Get VPN client connection health detail per P2S client connection of the virtual network gateway
+        in the specified resource group.
+
+    :param name: The name of the virtual network gateway.
+
+    :param resource_group: The name of the resource group.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_network.virtual_network_gateway_get_vpnclient_connection_health test_name test_group
+
+    '''
+    result = {}
+    netconn = __utils__['azurearm.get_client']('network', **kwargs)
+    try:
+        status = netconn.virtual_network_gateways.get_vpnclient_connection_health(
+            resource_group_name=resource_group,
+            virtual_network_gateway_name=name
+        )
+
+        status_result = status.result().as_dict()
+        result = status_result
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
@@ -3528,7 +3702,7 @@ def virtual_network_gateway_get_bgp_peer_status(name, resource_group, peer=None,
         )
 
         peers_result = peers.result().as_dict()
-        for bgp_peer in peers_result['value']:    
+        for bgp_peer in peers_result['value']:
             result['BGP peer'] = bgp_peer
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
@@ -3573,8 +3747,7 @@ def virtual_network_gateway_get_learned_routes(name, resource_group, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Gets a list of routes that the virtual network gateway has learned, 
-        including routes learned from BGP peers.
+    Gets a list of routes that the virtual network gateway has learned, including routes learned from BGP peers.
 
     :param name: The name of the virtual network gateway.
 
@@ -3584,7 +3757,7 @@ def virtual_network_gateway_get_learned_routes(name, resource_group, **kwargs):
 
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_get_learned_routes test_name test_group 
+        salt-call azurearm_network.virtual_network_gateway_get_learned_routes test_name test_group
 
     '''
     result = {}
@@ -3617,7 +3790,7 @@ def virtual_network_gateway_get_advertised_routes(name, resource_group, peer, **
 
     :param peer: The IP address of the peer.
 
-    CLI Example:                                                                                                                             
+    CLI Example:
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_get_learned_routes test_name test_group test_peer
@@ -3631,7 +3804,7 @@ def virtual_network_gateway_get_advertised_routes(name, resource_group, peer, **
             virtual_network_gateway_name=name,
             peer=peer
         )
-        
+
         routes_result = routes.result().as_dict()
         for route in routes_result['value']:
             result['route_list'] = route
@@ -3642,14 +3815,14 @@ def virtual_network_gateway_get_advertised_routes(name, resource_group, peer, **
     return result
 
 
-def virtual_network_gateway_set_vpnclient_ipsec_parameters(name, resource_group, sa_life_time_seconds, 
-                                                           sa_data_size_kilobytes, ipsec_encryption, 
-                                                           ipsec_integrity, ike_encryption, ike_integrity, 
+def virtual_network_gateway_set_vpnclient_ipsec_parameters(name, resource_group, sa_life_time_seconds,
+                                                           sa_data_size_kilobytes, ipsec_encryption,
+                                                           ipsec_integrity, ike_encryption, ike_integrity,
                                                            dh_group, pfs_group, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Sets the vpnclient ipsec policy for P2S client of virtual network gateway in the 
+    Sets the vpnclient ipsec policy for P2S client of virtual network gateway in the
         specified resource group through Network resource provider.
 
     :param name: The name of the virtual network gateway.
@@ -3658,29 +3831,29 @@ def virtual_network_gateway_set_vpnclient_ipsec_parameters(name, resource_group,
 
     The following parameters are for creating a VpnClientIPsecParameters object:
 
-    :param sa_life_time_seconds: The IPSec Security Association (also called Quick Mode or Phase 2 SA) 
+    :param sa_life_time_seconds: The IPSec Security Association (also called Quick Mode or Phase 2 SA)
         lifetime in seconds for P2S client. Must be between 300 - 172799 seconds.
 
     :param sa_data_size_kilobytes: The IPSec Security Association (also called Quick Mode or Phase 2 SA)
-	payload size in KB for P2S client. Must be between 1024 - 2147483647 kilobytes.
+        payload size in KB for P2S client. Must be between 1024 - 2147483647 kilobytes.
 
-    :param ipsec_encryption: The IPSec encryption algorithm (IKE phase 1). Possible values include: 
-	'None', 'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
+    :param ipsec_encryption: The IPSec encryption algorithm (IKE phase 1). Possible values include:
+        'None', 'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
 
-    :param ipsec_integrity: The IPSec integrity algorithm (IKE phase 1). Possible values include: 
-	'MD5', 'SHA1', 'SHA256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
+    :param ipsec_integrity: The IPSec integrity algorithm (IKE phase 1). Possible values include:
+        'MD5', 'SHA1', 'SHA256', 'GCMAES128', 'GCMAES192', 'GCMAES256'
 
-    :param ike_encryption: The IKE encryption algorithm (IKE phase 2). Possible values include: 
-	'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES256', 'GCMAES128'
+    :param ike_encryption: The IKE encryption algorithm (IKE phase 2). Possible values include:
+        'DES', 'DES3', 'AES128', 'AES192', 'AES256', 'GCMAES256', 'GCMAES128'
 
-    :param ike_integrity: The IKE integrity algorithm (IKE phase 2). Possible values include: 
-	'MD5', 'SHA1', 'SHA256', 'SHA384', 'GCMAES256', 'GCMAES128'
+    :param ike_integrity: The IKE integrity algorithm (IKE phase 2). Possible values include:
+        'MD5', 'SHA1', 'SHA256', 'SHA384', 'GCMAES256', 'GCMAES128'
 
-    :param dh_group: The DH Group used in IKE Phase 1 for initial SA. Possible values include: 
-	'None', 'DHGroup1', 'DHGroup2', 'DHGroup14', 'DHGroup2048', 'ECP256', 'ECP384', 'DHGroup24'
+    :param dh_group: The DH Group used in IKE Phase 1 for initial SA. Possible values include:
+        'None', 'DHGroup1', 'DHGroup2', 'DHGroup14', 'DHGroup2048', 'ECP256', 'ECP384', 'DHGroup24'
 
-    :param pfs_group: The Pfs Group used in IKE Phase 2 for new child SA. Possible values include: 
-	'None', 'PFS1', 'PFS2', 'PFS2048', 'ECP256', 'ECP384', 'PFS24', 'PFS14', 'PFSMM'
+    :param pfs_group: The Pfs Group used in IKE Phase 2 for new child SA. Possible values include:
+        'None', 'PFS1', 'PFS2', 'PFS2048', 'ECP256', 'ECP384', 'PFS24', 'PFS14', 'PFSMM'
 
     CLI Example:
 
@@ -3697,7 +3870,7 @@ def virtual_network_gateway_set_vpnclient_ipsec_parameters(name, resource_group,
             'network',
             'VpnClientIPsecParameters',
             sa_life_time_seconds=sa_life_time_seconds,
-	    sa_data_size_kilobytes=sa_data_size_kilobytes,
+            sa_data_size_kilobytes=sa_data_size_kilobytes,
             ipsec_encryption=ipsec_encryption,
             ipsec_integrity=ipsec_integrity,
             ike_encryption=ike_encryption,
@@ -3739,7 +3912,7 @@ def virtual_network_gateway_get_vpnclient_ipsec_parameters(name, resource_group,
 
     CLI Example:
     .. code-block:: bash
-    
+
         salt-call azurearm_network.virtual_network_gateway_get_vpnclient_ipsec_parameters test_name test_group
 
     '''
@@ -3759,8 +3932,8 @@ def virtual_network_gateway_get_vpnclient_ipsec_parameters(name, resource_group,
     return result
 
 
-def virtual_network_gateway_vpn_device_configuration_script(name, resource_group, vendor, device_family, 
-							    firmware_version, **kwargs):
+def virtual_network_gateway_vpn_device_configuration_script(name, resource_group, vendor, device_family,
+                                                            firmware_version, **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -3775,13 +3948,13 @@ def virtual_network_gateway_vpn_device_configuration_script(name, resource_group
 
     :param device_family: The device family for the vpn device.
 
-    :param firmware_version: The firmware version for the vpn device. 
+    :param firmware_version: The firmware version for the vpn device.
 
     CLI Example:
     .. code-block:: bash
 
-        salt-call azurearm_network.virtual_network_gateway_vpn_device_configuration_script test_name test_group \ 
-	          test_vendor test_device_fam test_version
+        salt-call azurearm_network.virtual_network_gateway_vpn_device_configuration_script test_name test_group \
+                  test_vendor test_device_fam test_version
 
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -3792,7 +3965,7 @@ def virtual_network_gateway_vpn_device_configuration_script(name, resource_group
             'VpnDeviceScriptParameters',
             vendor=vendor,
             device_family=device_family,
-	    firmware_version=firmware_version,
+            firmware_version=firmware_version,
         )
     except TypeError as exc:
         result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
@@ -3806,7 +3979,7 @@ def virtual_network_gateway_vpn_device_configuration_script(name, resource_group
             **kwargs
         )
 
-        result = script 
+        result = script
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
@@ -4032,7 +4205,7 @@ def local_network_gateway_create_or_update(name, resource_group, gateway_ip_addr
         gatewaymodel = __utils__['azurearm.create_object_model'](
             'network',
             'LocalNetworkGateway',
-	    gateway_ip_address=gateway_ip_address,
+            gateway_ip_address=gateway_ip_address,
             **kwargs
         )
     except TypeError as exc:
@@ -4062,17 +4235,17 @@ def local_network_gateway_get(name, resource_group, **kwargs):
     .. versionadded:: Sodium
 
     Gets the details of a specific local network gateway within a specified resource group.
-    
-    :param name: The name of the local network gateway. 
-    
-    :param resource_group: The name of the resource group. 
-    
+
+    :param name: The name of the local network gateway.
+
+    :param resource_group: The name of the resource group.
+
     CLI Example:
-    
+
     .. code-block:: bash
-        
+
         salt-call azurearm_network.local_network_gateway_get test_name test_group
-    
+
     '''
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
     try:
@@ -4086,7 +4259,7 @@ def local_network_gateway_get(name, resource_group, **kwargs):
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
 
-    return result 
+    return result
 
 
 def local_network_gateway_delete(name, resource_group, **kwargs):
@@ -4097,14 +4270,14 @@ def local_network_gateway_delete(name, resource_group, **kwargs):
 
     :param name: The name of the local network gateway that will be deleted.
 
-    :param resource_group: The name of the resource group. 
+    :param resource_group: The name of the resource group.
 
     CLI Example:
 
     .. code-block:: bash
 
         salt-call azurearm_network.local_network_gateway_delete test_name test_group
-    
+
     '''
     result = False
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
@@ -4152,5 +4325,3 @@ def local_network_gateways_list(resource_group, **kwargs):
         result = {'error': str(exc)}
 
     return result
-
-

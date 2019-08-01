@@ -7,16 +7,16 @@ Azure (ARM) Network State Module
 :maintainer: <devops@eitr.tech>
 :maturity: new
 :depends:
-    * `azure <https://pypi.python.org/pypi/azure>`_ >= 2.0.0
-    * `azure-common <https://pypi.python.org/pypi/azure-common>`_ >= 1.1.8
-    * `azure-mgmt <https://pypi.python.org/pypi/azure-mgmt>`_ >= 1.0.0
-    * `azure-mgmt-compute <https://pypi.python.org/pypi/azure-mgmt-compute>`_ >= 1.0.0
-    * `azure-mgmt-network <https://pypi.python.org/pypi/azure-mgmt-network>`_ >= 1.7.1
-    * `azure-mgmt-resource <https://pypi.python.org/pypi/azure-mgmt-resource>`_ >= 1.1.0
-    * `azure-mgmt-storage <https://pypi.python.org/pypi/azure-mgmt-storage>`_ >= 1.0.0
-    * `azure-mgmt-web <https://pypi.python.org/pypi/azure-mgmt-web>`_ >= 0.32.0
-    * `azure-storage <https://pypi.python.org/pypi/azure-storage>`_ >= 0.34.3
-    * `msrestazure <https://pypi.python.org/pypi/msrestazure>`_ >= 0.4.21
+    * `azure <https://pypi.python.org/pypi/azure>`_ >= 4.0.0
+    * `azure-common <https://pypi.python.org/pypi/azure-common>`_ >= 1.1.23
+    * `azure-mgmt <https://pypi.python.org/pypi/azure-mgmt>`_ >= 4.0.0
+    * `azure-mgmt-compute <https://pypi.python.org/pypi/azure-mgmt-compute>`_ >= 4.6.2
+    * `azure-mgmt-network <https://pypi.python.org/pypi/azure-mgmt-network>`_ >= 4.0.0
+    * `azure-mgmt-resource <https://pypi.python.org/pypi/azure-mgmt-resource>`_ >= 2.2.0
+    * `azure-mgmt-storage <https://pypi.python.org/pypi/azure-mgmt-storage>`_ >= 2.0.0
+    * `azure-mgmt-web <https://pypi.python.org/pypi/azure-mgmt-web>`_ >= 0.35.0
+    * `azure-storage <https://pypi.python.org/pypi/azure-storage>`_ >= 0.36.0
+    * `msrestazure <https://pypi.python.org/pypi/msrestazure>`_ >= 0.6.1
 :platform: linux
 
 :configuration: This module requires Azure Resource Manager credentials to be passed as a dictionary of
@@ -2636,9 +2636,9 @@ def virtual_network_peering_present(name, remote_virtual_network, virtual_networ
                 'name': name,
                 'remote_virtual_network': remote_virtual_network,
                 'remote_vnet_group': (remote_vnet_group or resource_group),
-                'use_remote_gateways': use_remote_gateways, 
-                'allow_forwarded_traffic': allow_forwarded_traffic, 
-                'allow_virtual_network_access': allow_virtual_network_access, 
+                'use_remote_gateways': use_remote_gateways,
+                'allow_forwarded_traffic': allow_forwarded_traffic,
+                'allow_virtual_network_access': allow_virtual_network_access,
                 'allow_gateway_transit': allow_gateway_transit
             }
         }
@@ -2657,9 +2657,9 @@ def virtual_network_peering_present(name, remote_virtual_network, virtual_networ
         remote_vnet_group=remote_vnet_group,
         virtual_network=virtual_network,
         resource_group=resource_group,
-        use_remote_gateways=use_remote_gateways, 
-        allow_forwarded_traffic=allow_forwarded_traffic, 
-        allow_virtual_network_access=allow_virtual_network_access, 
+        use_remote_gateways=use_remote_gateways,
+        allow_forwarded_traffic=allow_forwarded_traffic,
+        allow_virtual_network_access=allow_virtual_network_access,
         allow_gateway_transit=allow_gateway_transit,
         **peering_kwargs
     )
@@ -2697,9 +2697,9 @@ def virtual_network_peering_present(name, remote_virtual_network, virtual_networ
             remote_vnet_group=remote_vnet_group,
             virtual_network=virtual_network,
             resource_group=resource_group,
-            use_remote_gateways=use_remote_gateways, 
-            allow_forwarded_traffic=allow_forwarded_traffic, 
-            allow_virtual_network_access=allow_virtual_network_access, 
+            use_remote_gateways=use_remote_gateways,
+            allow_forwarded_traffic=allow_forwarded_traffic,
+            allow_virtual_network_access=allow_virtual_network_access,
             allow_gateway_transit=allow_gateway_transit,
             **peering_kwargs
         )
@@ -2786,11 +2786,11 @@ def virtual_network_peering_absent(name, virtual_network, resource_group, connec
 
 
 def virtual_network_gateway_connection_present(name, resource_group, virtual_network_gateway1, connection_type,
-					       virtual_network_gateway2=None, local_network_gateway2=None, peer=None,
-					       connection_protocol=None, shared_key=None, enable_bgp=None, 
-					       ipsec_policies=None, use_policy_based_traffic_selectors=None,
-					       routing_weight=None, express_route_gateway_bypass=None, 
-					       authorization_key=None, tags=None, connection_auth=None, **kwargs):
+                                               virtual_network_gateway2=None, local_network_gateway2=None, peer=None,
+                                               connection_protocol=None, shared_key=None, enable_bgp=None,
+                                               ipsec_policies=None, use_policy_based_traffic_selectors=None,
+                                               routing_weight=None, express_route_gateway_bypass=None,
+                                               authorization_key=None, tags=None, connection_auth=None, **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -2799,38 +2799,39 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
     :param name:
         The name of the virtual network gateway connection.
 
-    :param resource_group: 
+    :param resource_group:
         The name of the resource group associated with the virtual network gateway connection.
 
-    :param virtual_network_gateway1: 
-        The name of the virtual network gateway that will be the first endpoint of the connection. 
-	The virtual_network_gateway1 is immutable once set.
+    :param virtual_network_gateway1:
+        The name of the virtual network gateway that will be the first endpoint of the connection.
+        The virtual_network_gateway1 is immutable once set.
 
-    :param connection_type: 
-        Gateway connection type. Possible values include: 'IPsec', 'Vnet2Vnet', and 'ExpressRoute'. 
-	The connection_type is immutable once set.
+    :param connection_type:
+        Gateway connection type. Possible values include: 'IPsec', 'Vnet2Vnet', and 'ExpressRoute'.
+        The connection_type is immutable once set.
 
     :param virtual_network_gateway2:
-        The name of the virtual network gateway that will be used as the second endpoint for the connection.
-        Required for a connection_type of 'Vnet2Vnet'.
+        The valid Resource ID representing a VirtualNetworkGateway Object that will be used as the second endpoint
+        for the connection. Required for a connection_type of 'Vnet2Vnet'. This is immutable once set.
 
     :param local_network_gateway2:
-        The name of the local network gateway that will be used as the second endpoint for the connection.
-        Required for a connection_type of 'IPSec'.
+        The valid Resource ID representing a LocalNetworkGateway Object that will be used as the second endpoint
+        for the connection. Required for a connection_type of 'IPSec'. This is immutable once set.
 
     :param peer:
-        The reference to peerings resource. Required for a connection_type of 'ExpressRoute'.
+        The valid Resource ID representing a ExpressRouteCircuit Object that will be used as the second endpoint
+        for the connection. Required for a connection_type of 'ExpressRoute'. This is immutable once set.
 
-    :param connection_protocol: 
-	Connection protocol used for this connection. Possible values include: 'IKEv2', 'IKEv1'.
+    :param connection_protocol:
+        Connection protocol used for this connection. Possible values include: 'IKEv2', 'IKEv1'.
 
     :param shared_key:
-        The shared key for the connection. Required for a connection_type of 'IPSec' or 'Vnet2Vnet'. 
+        The shared key for the connection. Required for a connection_type of 'IPSec' or 'Vnet2Vnet'.
         Defaults to a randomly generated key.
 
     :param enable_bgp:
         Whether BGP is enabled for this virtual network gateway connection or not. This is a bool value that defaults
-        to False. Both endpoints of the connection must have BGP enabled and may not have the same ASN values. Cannot 
+        to False. Both endpoints of the connection must have BGP enabled and may not have the same ASN values. Cannot
         be enabled while use_policy_based_traffic_selectors is enabled.
 
     :param ipsec_policies:
@@ -2853,15 +2854,15 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
           - ``pfs_group``: The Pfs Group used in IKE Phase 2 for new child SA. Possible values include:
                            'None', 'PFS1', 'PFS2', 'PFS2048', 'ECP256', 'ECP384', 'PFS24', 'PFS14', 'PFSMM'
 
-    :param use_policy_based_traffic_selectors: 
-	Enable policy-based traffic selectors for a connection. Can only be enabled for a connection of type 'IPSec'. 
-	Cannot be enabled at the same time as BGP. Requires that the IPSec policies are defined. This is a bool value.
+    :param use_policy_based_traffic_selectors:
+        Enable policy-based traffic selectors for a connection. Can only be enabled for a connection of type 'IPSec'.
+        Cannot be enabled at the same time as BGP. Requires that the IPSec policies are defined. This is a bool value.
 
     :param routing_weight:
         The routing weight. This is an integer value.
 
-    :param express_route_gateway_bypass: 
-	Bypass ExpressRoute Gateway for data forwarding. This is a bool value.
+    :param express_route_gateway_bypass:
+        Bypass ExpressRoute Gateway for data forwarding. This is a bool value.
 
     :param authorization_key:
         The authorizationKey. This is a string value.
@@ -2875,17 +2876,17 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
 
     Example usage:
 
-    .. code-block:: yaml  
-                                                                                                                                                                                
+    .. code-block:: yaml
+
         Ensure virtual network gateway Vnet2Vnet connection exists:
             azurearm_network.virtual_network_gateway_connection_present:
                 - name: connection1
                 - resource_group: group1
-                - virtual_network_gateway1: gateway1
+                - virtual_network_gateway1: Resource ID for gateway1
                 - connection_type: 'Vnet2Vnet'
-		- virtual_network_gateway2: gateway2
-		- enable_bgp: False
-		- shared_key: 'key'
+                - virtual_network_gateway2: Resource ID for gateway2
+                - enable_bgp: False
+                - shared_key: 'key'
                 - tags:
                     contact_name: Elmer Fudd Gantry
                 - connection_auth: {{ profile }}
@@ -2894,24 +2895,24 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
                   - azurearm_network: Ensure virtual network gateway exists
 
         Ensure virtual network gateway IPSec connection exists:
-	    azurearm_network.virtual_network_gateway_connection_present:
+            azurearm_network.virtual_network_gateway_connection_present:
                 - name: connection1
                 - resource_group: group1
-                - virtual_network_gateway1: gateway1
+                - virtual_network_gateway1: Resource ID for gateway1
                 - connection_type: 'IPSec'
-		- local_network_gateway2: local_gateway2
+                - local_network_gateway2: Resource ID for gateway2
                 - enable_bgp: False
-		- shared_key: 'key'
-		- use_policy_based_traffic_selectors: True
-		- ipsec_policies:
+                - shared_key: 'key'
+                - use_policy_based_traffic_selectors: True
+                - ipsec_policies:
                   - sa_life_time_seconds: 300
                     sa_data_size_kilobytes: 1024
                     ipsec_encryption: 'DES'
-		    ipsec_integrity: 'SHA256'
-		    ike_encryption: 'DES'
-		    ike_integrity: 'SHA256'
-		    dh_group: 'None'
-		    pfs_group: 'None'
+                    ipsec_integrity: 'SHA256'
+                    ike_encryption: 'DES'
+                    ike_integrity: 'SHA256'
+                    dh_group: 'None'
+                    pfs_group: 'None'
                 - tags:
                     contact_name: Elmer Fudd Gantry
                 - connection_auth: {{ profile }}
@@ -2942,30 +2943,15 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
         if tag_changes:
             ret['changes']['tags'] = tag_changes
 
-	if connection_protocol != None:
+        if connection_protocol:
             if connection_protocol != connection.get('connection_protocol'):
                 ret['changes']['connection_protocol'] = {
                     'old': connection.get('connection_protocol'),
                     'new': connection_protocol
                 }
 
-	if connection_type == 'IPSec':
-	    
-	    localgw2 = __salt__['azurearm_network.local_network_gateway_get'](
-		local_network_gateway2,
-        	resource_group,
-        	azurearm_log_level='info',
-        	**connection_auth
-    	    )
-
-	    if 'error' not in localgw2:	
-	    	if localgw2['id'] != connection['local_network_gateway2']['id']:
-            	    ret['changes']['local_network_gateway2'] = {
-	                'old': connection.get('local_network_gateway2'),
-		        'new': local_network_gateway2
-	            }
-
-            if ipsec_policies != None:
+        if connection_type == 'IPSec':
+            if ipsec_policies:
                 if not isinstance(ipsec_policies, list):
                     ret['comment'] = 'ipsec_policies must be provided as a list containing a single dictionary!'
                     return ret
@@ -2997,75 +2983,59 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
                         'new': ipsec_policies
                     }
 
-            if use_policy_based_traffic_selectors != None:
+            # Checking boolean parameter
+            if use_policy_based_traffic_selectors is not None:
                 if use_policy_based_traffic_selectors != connection.get('use_policy_based_traffic_selectors'):
                     ret['changes']['use_policy_based_traffic_selectors'] = {
                         'old': connection.get('use_policy_based_traffic_selectors'),
                         'new': use_policy_based_traffic_selectors
                     }
-            
-        if connection_type == 'Vnet2Vnet':
-
-            vnetgw2 = __salt__['azurearm_network.virtual_network_gateway_get'](
-                virtual_network_gateway2,
-                resource_group,
-                azurearm_log_level='info',
-                **connection_auth
-            )
-
-            if 'error' not in vnetgw2:
-                if vnetgw2['id'] != connection['virtual_network_gateway2']['id']:
-                    ret['changes']['virtual_network_gateway2'] = {
-                        'old': connection.get('virtual_network_gateway2'),
-                        'new': virtual_network_gateway2
-                    }
 
         if connection_type == 'Vnet2Vnet' or connection_type == 'IPSec':
-
-            if enable_bgp != None:
+            # Checking boolean parameter
+            if enable_bgp is not None:
                 if enable_bgp != connection.get('enable_bgp'):
                     ret['changes']['enable_bgp'] = {
                         'old': connection.get('enable_bgp'),
                         'new': enable_bgp
                     }
 
-	    if shared_key != None:
+            if shared_key:
                 if shared_key != connection.get('shared_key'):
                     ret['changes']['shared_key'] = {
                         'old': connection.get('shared_key'),
                         'new': shared_key
-		    }
+                    }
 
-            
-	if connection_type == 'ExpressRoute':
-	 
-	    if peer != None:
-		if peer != connection.get('peer'):
-		    ret['changes']['peer'] = {
-			'old': connection.get('peer'),
-			'new': peer
-		    }
+        if connection_type == 'ExpressRoute':
+            if peer:
+                if peer != connection.get('peer'):
+                    ret['changes']['peer'] = {
+                        'old': connection.get('peer'),
+                        'new': peer
+                    }
 
-	    if authorization_key != None:
+            if authorization_key:
                 if authorization_key != connection.get('authorization_key'):
                     ret['changes']['authorization_key'] = {
                         'old': connection.get('authorization_key'),
                         'new': enable_bgp
-		    }
+                    }
 
-	    if routing_weight != None:
-		if routing_weight != connection.get('routing_weight'):
-		    ret['changes']['routing_weight'] = {
-			'old': connection.get('routing_weight'),
-			'new': routing_weight
-		    }
+            if routing_weight is not None:
+                if routing_weight != connection.get('routing_weight'):
+                    ret['changes']['routing_weight'] = {
+                        'old': connection.get('routing_weight'),
+                        'new': routing_weight
+                    }
 
-	    if express_route_gateway_bypass != None:
-		if express_route_gateway_bypass != connection.get('express_route_gateway_bypass'):
-		    ret['changes']['express_route_gateway_bypass'] = {
-			'old': connection.get('express_route_gateway_bypass'),
-			'new': express_route_gateway_bypass
-		    }
+            # Checking boolean parameter
+            if express_route_gateway_bypass is not None:
+                if express_route_gateway_bypass != connection.get('express_route_gateway_bypass'):
+                    ret['changes']['express_route_gateway_bypass'] = {
+                        'old': connection.get('express_route_gateway_bypass'),
+                        'new': express_route_gateway_bypass
+                    }
 
         if not ret['changes']:
             ret['result'] = True
@@ -3088,29 +3058,29 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
             }
         }
 
-        if tags != None:
+        if tags:
             ret['changes']['new']['tags'] = tags
-        if enable_bgp != None:
+        if enable_bgp is not None:
             ret['changes']['new']['enable_bgp'] = enable_bgp
-        if connection_protocol != None:
-	    ret['changes']['new']['connection_protocol'] = connection_protocol
-        if shared_key != None:
-	    ret['changes']['new']['shared_key'] = shared_key
-        if local_network_gateway2 != None:
+        if connection_protocol:
+            ret['changes']['new']['connection_protocol'] = connection_protocol
+        if shared_key:
+            ret['changes']['new']['shared_key'] = shared_key
+        if local_network_gateway2:
             ret['changes']['new']['local_network_gateway2'] = local_network_gateway2
-	if ipsec_policies != None:
-	    ret['changes']['new']['ipsec_policies'] = ipsec_policies
-        if virtual_network_gateway2 != None:
+        if ipsec_policies:
+            ret['changes']['new']['ipsec_policies'] = ipsec_policies
+        if virtual_network_gateway2:
             ret['changes']['new']['virtual_network_gateway2'] = virtual_network_gateway2
-	if express_route_gateway_bypass != None:
-	    ret['changes']['new']['express_route_gateway_bypass'] = express_route_gateway_bypass
-	if use_policy_based_traffic_selectors != None:
-	    ret['changes']['new']['use_policy_based_traffic_selectors'] = use_policy_based_traffic_selectors
-        if authorization_key != None:
+        if express_route_gateway_bypass is not None:
+            ret['changes']['new']['express_route_gateway_bypass'] = express_route_gateway_bypass
+        if use_policy_based_traffic_selectors is not None:
+            ret['changes']['new']['use_policy_based_traffic_selectors'] = use_policy_based_traffic_selectors
+        if authorization_key:
             ret['changes']['new']['authorization_key'] = authorization_key
-        if peer != None:
+        if peer:
             ret['changes']['new']['peer'] = peer
-        if routing_weight != None:
+        if routing_weight is not None:
             ret['changes']['new']['routing_weight'] = routing_weight
 
     if __opts__['test']:
@@ -3122,16 +3092,7 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
     connection_kwargs.update(connection_auth)
 
     if connection_type == 'IPSec':
-        # Get a LocalNetWorkGateway Object using the name of the Local Network Gateway that
-        # the connection will use as its second endpoint.
-        localgw2 = __salt__['azurearm_network.local_network_gateway_get'](
-            local_network_gateway2,
-            resource_group,
-            azurearm_log_level='info',
-            **connection_auth
-        )
-
-	con =  __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
+        con = __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
             name=name,
             resource_group=resource_group,
             virtual_network_gateway1=virtual_network_gateway1,
@@ -3139,24 +3100,15 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
             connection_protocol=connection_protocol,
             enable_bgp=enable_bgp,
             shared_key=shared_key,
-	    ipsec_policies=ipsec_policies,
-	    local_network_gateway2=localgw2,
-	    use_policy_based_traffic_selectors=use_policy_based_traffic_selectors,
+            ipsec_policies=ipsec_policies,
+            local_network_gateway2=local_network_gateway2,
+            use_policy_based_traffic_selectors=use_policy_based_traffic_selectors,
             tags=tags,
             **connection_kwargs
         )
 
     if connection_type == 'Vnet2Vnet':
-        # Get a VirtualNetWorkGateway Object using the name of the Virtual Network Gateway that
-        # the connection will use as its second endpoint.
-        vnetgw2 = __salt__['azurearm_network.virtual_network_gateway_get'](
-            virtual_network_gateway2,
-            resource_group,
-            azurearm_log_level='info',
-            **connection_auth
-        )
-
-        con =  __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
+        con = __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
             name=name,
             resource_group=resource_group,
             virtual_network_gateway1=virtual_network_gateway1,
@@ -3164,8 +3116,7 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
             connection_protocol=connection_protocol,
             enable_bgp=enable_bgp,
             shared_key=shared_key,
-            virtual_network_gateway2=vnetgw2,
-	    use_policy_based_traffic_selectors=use_policy_based_traffic_selectors,
+            virtual_network_gateway2=virtual_network_gateway2,
             tags=tags,
             **connection_kwargs
         )
@@ -3257,17 +3208,17 @@ def virtual_network_gateway_connection_absent(name, resource_group, connection_a
 
 
 def virtual_network_gateway_present(name, resource_group, virtual_network, ip_configurations, gateway_type=None,
-				    vpn_type=None, sku=None, enable_bgp=None, active_active=None, bgp_settings=None, 
-				    address_prefixes=None, tags=None, connection_auth=None, **kwargs):
+                                    vpn_type=None, sku=None, enable_bgp=None, active_active=None, bgp_settings=None,
+                                    address_prefixes=None, tags=None, connection_auth=None, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Ensure a virtual network gateway exists.
 
-    :param name: 
+    :param name:
         Name of the virtual network gateway.
 
-    :param resource_group: 
+    :param resource_group:
         The resource group associated with the virtual network gateway.
 
     :param virtual_network:
@@ -3277,46 +3228,46 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
         A list of dictionaries representing valid VirtualNetworkGatewayIPConfiguration objects. Valid parameters are:
           - ``name``: The name of the resource that is unique within a resource group.
           - ``public_ip_address``: Name of an existing public IP address that'll be assigned to the IP config object.
-          - ``private_ip_allocation_method``: The private IP allocation method. Possible values are: 
+          - ``private_ip_allocation_method``: The private IP allocation method. Possible values are:
                                               'Static' and 'Dynamic'.
-          - ``subnet``: Name of an existing subnet inside of which the IP config will reside. 
+          - ``subnet``: Name of an existing subnet inside of which the IP config will reside.
         If active_active is disabled, only one IP configuration dictionary is permitted. If active_active is enabled,
         two IP configuration dictionaries are required.
 
     :param gateway_type:
-        The type of this virtual network gateway. Possible values include: 'Vpn' and 'ExpressRoute'. 
-	The gateway type immutable once set.
+        The type of this virtual network gateway. Possible values include: 'Vpn' and 'ExpressRoute'.
+        The gateway type immutable once set.
 
-    :param vpn_type: 
-	The type of this virtual network gateway. Possible values include: 'PolicyBased' and 'RouteBased'.
-	The vpn type is immutable once set.
+    :param vpn_type:
+        The type of this virtual network gateway. Possible values include: 'PolicyBased' and 'RouteBased'.
+        The vpn type is immutable once set.
 
     :param sku: A dictionary representing the virtual network gateway SKU. Valid parameters are:
-	  - ``name``: Gateway SKU name. Possible values include 'Basic', 'HighPerformance', 'Standard', 
-		      'UltraPerformance', 'VpnGw1', 'VpnGw2', 'VpnGw3', 'VpnGw1AZ', 'VpnGw2AZ', 'VpnGw3AZ', 
-		      'ErGw1AZ', 'ErGw2AZ', and 'ErGw3AZ'.
-	  - ``tier``: Gateway SKU tier. Possible values include 'Basic', 'HighPerformance', 'Standard',
-		      'UltraPerformance', 'VpnGw1', 'VpnGw2', 'VpnGw3', 'VpnGw1AZ', 'VpnGw2AZ', 'VpnGw3AZ',
-		      'ErGw1AZ', 'ErGw2AZ', and 'ErGw3AZ'.
-	  - ``capacity``: The capacity. This is an integer value.
+          - ``name``: Gateway SKU name. Possible values include 'Basic', 'HighPerformance', 'Standard',
+                      'UltraPerformance', 'VpnGw1', 'VpnGw2', 'VpnGw3', 'VpnGw1AZ', 'VpnGw2AZ', 'VpnGw3AZ',
+                      'ErGw1AZ', 'ErGw2AZ', and 'ErGw3AZ'.
+          - ``tier``: Gateway SKU tier. Possible values include 'Basic', 'HighPerformance', 'Standard',
+                      'UltraPerformance', 'VpnGw1', 'VpnGw2', 'VpnGw3', 'VpnGw1AZ', 'VpnGw2AZ', 'VpnGw3AZ',
+                      'ErGw1AZ', 'ErGw2AZ', and 'ErGw3AZ'.
+          - ``capacity``: The capacity. This is an integer value.
 
-    :param enable_bgp: Whether BGP is enabled for this virtual network gateway or not. This is a bool value that 
+    :param enable_bgp: Whether BGP is enabled for this virtual network gateway or not. This is a bool value that
         defaults to False. BGP requires a SKU of VpnGw1, VpnGw2, VpnGw3, Standard, or HighPerformance.
 
     :param active_active: Whether active-active mode is enabled for this virtual network gateway or not. This is a bool
-        value that defauls to False. Active-active mode requires a SKU of VpnGw1, VpnGw2, VpnGw3, or HighPerformance.    
+        value that defauls to False. Active-active mode requires a SKU of VpnGw1, VpnGw2, VpnGw3, or HighPerformance.
 
-    :param bgp_settings: 
-	A dictionary representing a valid BgpSettings object, which stores the virtual network gateway's BGP speaker
+    :param bgp_settings:
+        A dictionary representing a valid BgpSettings object, which stores the virtual network gateway's BGP speaker
         settings. Valid parameters include:
-	  - ``asn``: The BGP speaker's Autonomous System Number. This is an integer value.
+          - ``asn``: The BGP speaker's Autonomous System Number. This is an integer value.
           - ``bgp_peering_address``: The BGP peering address and BGP identifier of this BGP speaker.
-	                             This is a string value. 
+                                     This is a string value.
           - ``peer_weight``: The weight added to routes learned from this BGP speaker. This is an integer value.
 
     :param address_prefixes:
         A list of CIDR blocks which can be used by subnets within the virtual network. Represents the custom routes
-	address space specified by the the customer for virtual network gateway and VpnClient.
+        address space specified by the the customer for virtual network gateway and VpnClient.
 
     :param tags:
         A dictionary of strings can be passed as tag metadata to the virtual network gateway object.
@@ -3328,7 +3279,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
     Example usage:
 
     .. code-block:: yaml
-        
+
         Ensure virtual network gateway exists:
             azurearm_network.virtual_network_gateway_present:
                 - name: gateway1
@@ -3336,7 +3287,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                 - virtual_network: vnet1
                 - ip_configurations:
                   - name: ip_config1
-		    private_ip_allocation_method: 'Dynamic'
+                    private_ip_allocation_method: 'Dynamic'
                     public_ip_address: pub_ip1
                 - tags:
                     contact_name: Elmer Fudd Gantry
@@ -3346,7 +3297,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                   - azurearm_network: Ensure virtual network exists
 
         Ensure virtual network gateway exists:
-	    azurearm_network.virtual_network_gateway_present:
+            azurearm_network.virtual_network_gateway_present:
                 - name: gateway1
                 - resource_group: group1
                 - virtual_network: vnet1
@@ -3357,7 +3308,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                   - name: ip_config2
                     private_ip_allocation_method: 'Dynamic'
                     public_ip_address: pub_ip2
-		- tags:
+                - tags:
                     contact_name: Elmer Fudd Gantry
                 - connection_auth: {{ profile }}
                 - gateway_type: 'Vpn'
@@ -3365,12 +3316,12 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                 - active_active: True
                 - enable_bgp: True
                 - bgp_settings:
-		    asn: 65514
+                    asn: 65514
                     bgp_peering_address: 10.2.2.2
                     peering_weight: 0
                 - address_prefixes:
-       	 	    - '10.0.0.0/8'
-        	    - '192.168.0.0/16'
+                    - '10.0.0.0/8'
+                    - '192.168.0.0/16'
                 - require:
                   - azurearm_resource: Ensure resource group exists
                   - azurearm_network: Ensure virtual network gateway exists
@@ -3391,7 +3342,7 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
         resource_group,
         azurearm_log_level='info',
         **connection_auth
-    )      
+    )
 
     if 'error' not in gateway:
         tag_changes = __utils__['dictdiffer.deep_diff'](gateway.get('tags', {}), tags or {})
@@ -3412,21 +3363,23 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
             if comp_ret.get('changes'):
                 ret['changes']['ip_configurations'] = comp_ret['changes']
 
-	if active_active != None:
+        # Checking boolean parameter
+        if active_active is not None:
             if active_active != gateway.get('active_active'):
                 ret['changes']['active_active'] = {
                     'old': gateway.get('active_active'),
                     'new': active_active
                 }
 
-	if enable_bgp != None:
+        # Checking boolean parameter
+        if enable_bgp is not None:
             if enable_bgp != gateway.get('enable_bgp'):
                 ret['changes']['enable_bgp'] = {
-	            'old': gateway.get('enable_bgp'),
-		    'new': enable_bgp
-	        }
+                    'old': gateway.get('enable_bgp'),
+                    'new': enable_bgp
+                }
 
-        if sku != None:
+        if sku:
             sku_changes = __utils__['dictdiffer.deep_diff'](gateway.get('sku', {}), sku)
             if sku_changes:
                 ret['changes']['sku'] = sku_changes
@@ -3475,44 +3428,44 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
             }
         }
 
-	if tags != None:
-	    ret['changes']['new']['tags'] = tags
-        if gateway_type != None:
+        if tags:
+            ret['changes']['new']['tags'] = tags
+        if gateway_type:
             ret['changes']['new']['gateway_type'] = gateway_type
-        if vpn_type != None:
+        if vpn_type:
             ret['changes']['new']['vpn_type'] = vpn_type
-        if sku != None:
-	    ret['changes']['new']['sku'] = sku
-        if enable_bgp != None:
-	    ret['changes']['new']['enable_bgp'] = enable_bgp
-	if bgp_settings != None:
-	    ret['changes']['new']['bgp_settings'] = bgp_settings
-	if active_active != None:
-	    ret['changes']['new']['active_active'] = active_active
-	if address_prefixes != None:
+        if sku:
+            ret['changes']['new']['sku'] = sku
+        if enable_bgp is not None:
+            ret['changes']['new']['enable_bgp'] = enable_bgp
+        if bgp_settings:
+            ret['changes']['new']['bgp_settings'] = bgp_settings
+        if active_active is not None:
+            ret['changes']['new']['active_active'] = active_active
+        if address_prefixes:
             ret['changes']['new']['custom_routes'] = {'address_prefixes': address_prefixes}
 
     if __opts__['test']:
         ret['comment'] = 'Virtual network gateway {0} would be created.'.format(name)
         ret['result'] = None
         return ret
- 
+
     gateway_kwargs = kwargs.copy()
     gateway_kwargs.update(connection_auth)
-    
+
     gateway = __salt__['azurearm_network.virtual_network_gateway_create_or_update'](
         name=name,
         resource_group=resource_group,
         virtual_network=virtual_network,
         ip_configurations=ip_configurations,
-	gateway_type=gateway_type,
-	vpn_type=vpn_type,
+        gateway_type=gateway_type,
+        vpn_type=vpn_type,
         tags=tags,
-	sku=sku,
-	enable_bgp=enable_bgp,
-	bgp_settings=bgp_settings,
-	active_active=active_active,
-	custom_routes={'address_prefixes': address_prefixes},
+        sku=sku,
+        enable_bgp=enable_bgp,
+        bgp_settings=bgp_settings,
+        active_active=active_active,
+        custom_routes={'address_prefixes': address_prefixes},
         **gateway_kwargs
     )
 
@@ -3545,11 +3498,11 @@ def virtual_network_gateway_absent(name, resource_group, connection_auth=None):
 
     .. code-block:: yaml
 
-	Ensure virtual network gateway absent:
-	    azurearm_network.virtual_network_gateway_absent:
-		- name: gateway1
-		- resource_group: group1
-		- connection_auth: {{ profile }}
+        Ensure virtual network gateway absent:
+            azurearm_network.virtual_network_gateway_absent:
+                - name: gateway1
+                - resource_group: group1
+                - connection_auth: {{ profile }}
     '''
     ret = {
         'name': name,
@@ -3602,7 +3555,7 @@ def virtual_network_gateway_absent(name, resource_group, connection_auth=None):
     return ret
 
 
-def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_settings=None, 
+def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_settings=None,
                                   address_prefixes=None, tags=None, connection_auth=None, **kwargs):
     '''
     .. versionadded:: Sodium
@@ -3618,21 +3571,21 @@ def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_
     :param gateway_ip_address:
         IP address of local network gateway.
 
-    :param bgp_settings: 
-	A dictionary representing a valid BgpSettings object, which stores the local network gateway's BGP speaker 
+    :param bgp_settings:
+        A dictionary representing a valid BgpSettings object, which stores the local network gateway's BGP speaker
         settings. Valid parameters include:
-	  - ``asn``: The BGP speaker's Autonomous System Number. This is an integer value.
+          - ``asn``: The BGP speaker's Autonomous System Number. This is an integer value.
           - ``bgp_peering_address``: The BGP peering address and BGP identifier of this BGP speaker.
-	                             This is a string value. 
+                                     This is a string value.
           - ``peer_weight``: The weight added to routes learned from this BGP speaker. This is an integer value.
 
     :param address_prefixes:
-        A list of CIDR blocks which can be used by subnets within the virtual network. 
-	Represents the local network site address space.
+        A list of CIDR blocks which can be used by subnets within the virtual network.
+        Represents the local network site address space.
 
     :param tags:
         A dictionary of strings can be passed as tag metadata to the local network gateway object.
-    
+
     :param connection_auth:
         A dict with subscription and authentication parameters to be used in connecting to the
         Azure Resource Manager API.
@@ -3644,18 +3597,18 @@ def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_
         Ensure local network gateway exists:
             azurearm_network.local_network_gateway_present:
                 - name: gateway1
-    		- resource_group: rg-module-testing
-    		- gateway_ip_address: 192.168.0.1
-    		- bgp_settings:
-        	    asn: 65515
-        	    bgp_peering_address: 10.2.2.2
-        	    peer_weight: 0
-    		- address_prefixes:
-       	 	    - '10.0.0.0/8'
-        	    - '192.168.0.0/16'
+                - resource_group: rg-module-testing
+                - gateway_ip_address: 192.168.0.1
+                - bgp_settings:
+                    asn: 65515
+                    bgp_peering_address: 10.2.2.2
+                    peer_weight: 0
+                - address_prefixes:
+                    - '10.0.0.0/8'
+                    - '192.168.0.0/16'
                 - tags:
                     contact_name: Elmer Fudd Gantry
-    		- connection_auth: {{ profile }}  
+                - connection_auth: {{ profile }}
     '''
     ret = {
         'name': name,
@@ -3707,7 +3660,7 @@ def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_
                     'old': gateway.get('local_network_address_space', {}).get('address_prefixes', []),
                     'new': address_prefixes,
                 }
-            }       
+            }
 
         if not ret['changes']:
             ret['result'] = True
@@ -3725,15 +3678,15 @@ def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_
             'new': {
                 'name': name,
                 'resource_group': resource_group,
-		'gateway_ip_address': gateway_ip_address,
+                'gateway_ip_address': gateway_ip_address,
                 'tags': tags,
             }
         }
-        
+
         if bgp_settings:
             ret['changes']['new']['bgp_settings'] = bgp_settings
-	if address_prefixes:
-	    ret['changes']['new']['local_network_address_space'] = {'address_prefixes': address_prefixes}
+        if address_prefixes:
+            ret['changes']['new']['local_network_address_space'] = {'address_prefixes': address_prefixes}
 
     if __opts__['test']:
         ret['comment'] = 'Local network gateway {0} would be created.'.format(name)
@@ -3748,8 +3701,8 @@ def local_network_gateway_present(name, resource_group, gateway_ip_address, bgp_
         resource_group=resource_group,
         gateway_ip_address=gateway_ip_address,
         local_network_address_space={'address_prefixes': address_prefixes},
-	bgp_settings=bgp_settings,
-	tags=tags,
+        bgp_settings=bgp_settings,
+        tags=tags,
         **gateway_kwargs
     )
 
@@ -3783,7 +3736,7 @@ def local_network_gateway_absent(name, resource_group, connection_auth=None):
     .. code-block:: yaml
 
         Ensure local network gateway absent:
-	    azurearm_network.local_network_gateway_absent:
+            azurearm_network.local_network_gateway_absent:
                 - name: gateway1
                 - resource_group: group1
                 - connection_auth: {{ profile }}
@@ -3820,7 +3773,6 @@ def local_network_gateway_absent(name, resource_group, connection_auth=None):
         }
         return ret
 
-
     deleted = __salt__['azurearm_network.local_network_gateway_delete'](
         name,
         resource_group,
@@ -3838,4 +3790,3 @@ def local_network_gateway_absent(name, resource_group, connection_auth=None):
 
     ret['comment'] = 'Failed to delete local network gateway object {0}!'.format(name)
     return ret
-
