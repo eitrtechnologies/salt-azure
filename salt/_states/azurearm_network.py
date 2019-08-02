@@ -2785,7 +2785,7 @@ def virtual_network_peering_absent(name, virtual_network, resource_group, connec
     return ret
 
 
-def virtual_network_gateway_connection_present(name, resource_group, virtual_network_gateway1, connection_type,
+def virtual_network_gateway_connection_present(name, resource_group, virtual_network_gateway, connection_type,
                                                virtual_network_gateway2=None, local_network_gateway2=None, peer=None,
                                                connection_protocol=None, shared_key=None, enable_bgp=None,
                                                ipsec_policies=None, use_policy_based_traffic_selectors=None,
@@ -2802,9 +2802,9 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
     :param resource_group:
         The name of the resource group associated with the virtual network gateway connection.
 
-    :param virtual_network_gateway1:
+    :param virtual_network_gateway:
         The name of the virtual network gateway that will be the first endpoint of the connection.
-        The virtual_network_gateway1 is immutable once set.
+        The virtual_network_gateway is immutable once set.
 
     :param connection_type:
         Gateway connection type. Possible values include: 'IPsec', 'Vnet2Vnet', and 'ExpressRoute'.
@@ -2882,7 +2882,7 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
             azurearm_network.virtual_network_gateway_connection_present:
                 - name: connection1
                 - resource_group: group1
-                - virtual_network_gateway1: Resource ID for gateway1
+                - virtual_network_gateway: Resource ID for gateway1
                 - connection_type: 'Vnet2Vnet'
                 - virtual_network_gateway2: Resource ID for gateway2
                 - enable_bgp: False
@@ -2898,7 +2898,7 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
             azurearm_network.virtual_network_gateway_connection_present:
                 - name: connection1
                 - resource_group: group1
-                - virtual_network_gateway1: Resource ID for gateway1
+                - virtual_network_gateway: Resource ID for gateway1
                 - connection_type: 'IPSec'
                 - local_network_gateway2: Resource ID for gateway2
                 - enable_bgp: False
@@ -2943,12 +2943,11 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
         if tag_changes:
             ret['changes']['tags'] = tag_changes
 
-        if connection_protocol:
-            if connection_protocol != connection.get('connection_protocol'):
-                ret['changes']['connection_protocol'] = {
-                    'old': connection.get('connection_protocol'),
-                    'new': connection_protocol
-                }
+        if connection_protocol and connection_protocol != connection.get('connection_protocol'):
+            ret['changes']['connection_protocol'] = {
+                'old': connection.get('connection_protocol'),
+                'new': connection_protocol
+            }
 
         if connection_type == 'IPSec':
             if ipsec_policies:
@@ -2993,41 +2992,36 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
 
         if connection_type == 'Vnet2Vnet' or connection_type == 'IPSec':
             # Checking boolean parameter
-            if enable_bgp is not None:
-                if enable_bgp != connection.get('enable_bgp'):
-                    ret['changes']['enable_bgp'] = {
-                        'old': connection.get('enable_bgp'),
-                        'new': enable_bgp
-                    }
+            if enable_bgp is not None and enable_bgp != connection.get('enable_bgp'):
+                ret['changes']['enable_bgp'] = {
+                    'old': connection.get('enable_bgp'),
+                    'new': enable_bgp
+                }
 
-            if shared_key:
-                if shared_key != connection.get('shared_key'):
-                    ret['changes']['shared_key'] = {
-                        'old': connection.get('shared_key'),
-                        'new': shared_key
-                    }
+            if shared_key and shared_key != connection.get('shared_key'):
+                ret['changes']['shared_key'] = {
+                    'old': connection.get('shared_key'),
+                    'new': shared_key
+                }
 
         if connection_type == 'ExpressRoute':
-            if peer:
-                if peer != connection.get('peer'):
-                    ret['changes']['peer'] = {
-                        'old': connection.get('peer'),
-                        'new': peer
-                    }
+            if peer and peer != connection.get('peer'):
+                ret['changes']['peer'] = {
+                    'old': connection.get('peer'),
+                    'new': peer
+                }
 
-            if authorization_key:
-                if authorization_key != connection.get('authorization_key'):
-                    ret['changes']['authorization_key'] = {
-                        'old': connection.get('authorization_key'),
-                        'new': enable_bgp
-                    }
+            if authorization_key and authorization_key != connection.get('authorization_key'):
+                ret['changes']['authorization_key'] = {
+                    'old': connection.get('authorization_key'),
+                    'new': enable_bgp
+                }
 
-            if routing_weight is not None:
-                if routing_weight != connection.get('routing_weight'):
-                    ret['changes']['routing_weight'] = {
-                        'old': connection.get('routing_weight'),
-                        'new': routing_weight
-                    }
+            if routing_weight is not None and routing_weight != connection.get('routing_weight'):
+                ret['changes']['routing_weight'] = {
+                    'old': connection.get('routing_weight'),
+                    'new': routing_weight
+                }
 
             # Checking boolean parameter
             if express_route_gateway_bypass is not None:
@@ -3053,7 +3047,7 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
             'new': {
                 'name': name,
                 'resource_group': resource_group,
-                'virtual_network_gateway1': virtual_network_gateway1,
+                'virtual_network_gateway': virtual_network_gateway,
                 'connection_type': connection_type,
             }
         }
@@ -3095,7 +3089,7 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
         con = __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
             name=name,
             resource_group=resource_group,
-            virtual_network_gateway1=virtual_network_gateway1,
+            virtual_network_gateway=virtual_network_gateway,
             connection_type=connection_type,
             connection_protocol=connection_protocol,
             enable_bgp=enable_bgp,
@@ -3111,7 +3105,7 @@ def virtual_network_gateway_connection_present(name, resource_group, virtual_net
         con = __salt__['azurearm_network.virtual_network_gateway_connection_create_or_update'](
             name=name,
             resource_group=resource_group,
-            virtual_network_gateway1=virtual_network_gateway1,
+            virtual_network_gateway=virtual_network_gateway,
             connection_type=connection_type,
             connection_protocol=connection_protocol,
             enable_bgp=enable_bgp,
@@ -3364,20 +3358,18 @@ def virtual_network_gateway_present(name, resource_group, virtual_network, ip_co
                 ret['changes']['ip_configurations'] = comp_ret['changes']
 
         # Checking boolean parameter
-        if active_active is not None:
-            if active_active != gateway.get('active_active'):
-                ret['changes']['active_active'] = {
-                    'old': gateway.get('active_active'),
-                    'new': active_active
-                }
+        if active_active is not None and active_active != gateway.get('active_active'):
+            ret['changes']['active_active'] = {
+                'old': gateway.get('active_active'),
+                'new': active_active
+            }
 
         # Checking boolean parameter
-        if enable_bgp is not None:
-            if enable_bgp != gateway.get('enable_bgp'):
-                ret['changes']['enable_bgp'] = {
-                    'old': gateway.get('enable_bgp'),
-                    'new': enable_bgp
-                }
+        if enable_bgp is not None and enable_bgp != gateway.get('enable_bgp'):
+            ret['changes']['enable_bgp'] = {
+                'old': gateway.get('enable_bgp'),
+                'new': enable_bgp
+            }
 
         if sku:
             sku_changes = __utils__['dictdiffer.deep_diff'](gateway.get('sku', {}), sku)

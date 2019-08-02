@@ -61,8 +61,7 @@ except ImportError:
 HAS_LIBS = False
 try:
     import azure.mgmt.network.models  # pylint: disable=unused-import
-    from msrestazure.tools import is_valid_resource_id
-    from msrestazure.tools import parse_resource_id
+    from msrestazure.tools import is_valid_resource_id, parse_resource_id
     from msrest.exceptions import SerializationError
     from msrestazure.azure_exceptions import CloudError
     HAS_LIBS = True
@@ -2753,7 +2752,7 @@ def route_tables_list_all(**kwargs):
     return result
 
 
-def virtual_network_gateway_connection_create_or_update(name, resource_group, virtual_network_gateway1,
+def virtual_network_gateway_connection_create_or_update(name, resource_group, virtual_network_gateway,
                                                         connection_type, **kwargs):
     '''
     .. versionadded:: Sodium
@@ -2764,7 +2763,7 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
 
     :param resource_group: The name of the resource group.
 
-    :param virtual_network_gateway1: The name of the virtual network gateway that will
+    :param virtual_network_gateway: The name of the virtual network gateway that will
         be the first endpoint of the connection. This is immutable once set.
 
     :param connection_type: Gateway connection type. Possible values include:
@@ -2784,7 +2783,7 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
     .. code-block:: bash
 
         salt-call azurearm_network.virtual_network_gateway_connection_create_or_update test_name test_group
-                  test_vnet_gw1 test_connection_type
+                  test_vnet_gw test_connection_type
 
     '''
     if 'location' not in kwargs:
@@ -2801,149 +2800,67 @@ def virtual_network_gateway_connection_create_or_update(name, resource_group, vi
 
     netconn = __utils__['azurearm.get_client']('network', **kwargs)
 
-    # Converts the Resource ID of virtual_network_gateway1 into a VirtualNetworkGateway Object.
+    # Converts the Resource ID of virtual_network_gateway into a VirtualNetworkGateway Object.
     # This endpoint will be where the connection originates.
-    if virtual_network_gateway1:
-        if not is_valid_resource_id(virtual_network_gateway1):
-            log.error(
-                'Invalid Resource ID was specified as virtual_network_gateway1!'
-            )
-            return False
+    if not is_valid_resource_id(virtual_network_gateway):
+        log.error(
+            'Invalid Resource ID was specified as virtual_network_gateway!'
+        )
+        return False
 
-        vnetgw1_parsed_id = parse_resource_id(virtual_network_gateway1)
-        if not isinstance(vnetgw1_parsed_id, dict):
-            log.error(
-                'Invalid Resource ID was specified as virtual_network_gateway1!'
-            )
-            return False
-        else:
-            if vnetgw1_parsed_id['resource_group']:
-                vnetgw1_rg = vnetgw1_parsed_id['resource_group']
-            else:
-                log.error(
-                    'Invalid Resource ID was specified as virtual_network_gateway1!'
-                )
-                return False
+    vnetgw1_parsed_id = parse_resource_id(virtual_network_gateway)
 
-            if vnetgw1_parsed_id['resource_name']:
-                vnetgw1_name = vnetgw1_parsed_id['resource_name']
-            else:
-                log.error(
-                    'Invalid Resource ID was specified as virtual_network_gateway1!'
-                )
-                return False
+    try:
+        vnetgw1_rg = vnetgw1_parsed_id['resource_group']
+        vnetgw1_name = vnetgw1_parsed_id['resource_name']
+    except KeyError as esc:
+        log.error(
+            'Invalid Resource ID was specified as virtual_network_gateway! (%s)',
+            esc
+        )
+        return False
 
-            vnetgw1 = virtual_network_gateway_get(
-                name=vnetgw1_name,
-                resource_group=vnetgw1_rg,
-                **kwargs
-            )
+    vnetgw1 = virtual_network_gateway_get(
+        name=vnetgw1_name,
+        resource_group=vnetgw1_rg,
+        **kwargs
+    )
 
-            if 'error' in vnetgw1:
-                log.error(
-                    'Invalid Resource ID was specified as virtual_network_gateway1!'
-                )
-                return False
-            else:
-                virtual_network_gateway1 = vnetgw1
+    if 'error' in vnetgw1:
+        log.error(
+            'Unable to find the resource specified in virtual_network_gateway!'
+        )
+        return False
+    else:
+        virtual_network_gateway = {'id': str(vnetgw1['id'])}
 
-    # Converts the Resource ID of virtual_network_gateway2 into a VirtualNetworkGateway Object
-    # This will serve as the second endpoint for a connection of type 'Vnet2Vnet'
+    # Check the Resource ID path of virtual_network_gateway2
+    # We can't guarantee the validity of the object, so we hope you have the path correct...
+    if kwargs.get('virtual_network_gateway2') and not is_valid_resource_id(kwargs['virtual_network_gateway2']):
+        log.error(
+            'Invalid Resource ID was specified as virtual_network_gateway2!'
+        )
+        return False
+
+    # Check the Resource ID path of local_network_gateway2
+    # We can't guarantee the validity of the object, so we hope you have the path correct...
+    if kwargs.get('local_network_gateway2') and not is_valid_resource_id(kwargs['local_network_gateway2']):
+        log.error(
+            'Invalid Resource ID was specified as local_network_gateway2!'
+        )
+        return False
+
     if kwargs.get('virtual_network_gateway2'):
-        if not is_valid_resource_id(kwargs.get('virtual_network_gateway2')):
-            log.error(
-                'Invalid Resource ID was specified as virtual_network_gateway2!'
-            )
-            return False
+        kwargs['virtual_network_gateway2'] = {'id': kwargs.get('virtual_network_gateway2')}
 
-        vnetgw2_parsed_id = parse_resource_id(kwargs.get('virtual_network_gateway2'))
-        if not isinstance(vnetgw2_parsed_id, dict):
-            log.error(
-                'Invalid Resource ID was specified as virtual_network_gateway2!'
-            )
-            return False
-        else:
-            if vnetgw2_parsed_id['resource_group']:
-                vnetgw2_rg = vnetgw2_parsed_id['resource_group']
-            else:
-                log.error(
-                    'Invalid Resource ID was specified as virtual_network_gateway2!'
-                )
-                return False
-
-            if vnetgw2_parsed_id['resource_name']:
-                vnetgw2_name = vnetgw2_parsed_id['resource_name']
-            else:
-                log.error(
-                    'Invalid Resource ID was specified as virtual_network_gateway2!'
-                )
-                return False
-
-            vnetgw2 = virtual_network_gateway_get(
-                name=vnetgw2_name,
-                resource_group=vnetgw2_rg,
-                **kwargs
-            )
-
-            if 'error' in vnetgw2:
-                log.error(
-                    'Invalid Resource ID was specified as virtual_network_gateway2!'
-                )
-                return False
-            else:
-                kwargs['virtual_network_gateway2'] = vnetgw2
-
-    # Converts the Resource ID of local_network_gateway1 into a LocalNetworkGateway Object
-    # This will serve as the second endpoint for a connection of type 'IPSec'
     if kwargs.get('local_network_gateway2'):
-        if not is_valid_resource_id(kwargs.get('local_network_gateway2')):
-            log.error(
-                'Invalid Resource ID was specified as local_network_gateway2!'
-            )
-            return False
-
-        lnetgw2_parsed_id = parse_resource_id(kwargs.get('local_network_gateway2'))
-        if not isinstance(lnetgw2_parsed_id, dict):
-            log.error(
-                'Invalid Resource ID was specified as local_network_gateway2!'
-            )
-            return False
-        else:
-            if lnetgw2_parsed_id['resource_group']:
-                lnetgw2_rg = lnetgw2_parsed_id['resource_group']
-            else:
-                log.error(
-                    'Invalid Resource ID was specified as local_network_gateway2!'
-                )
-                return False
-
-            if lnetgw2_parsed_id['resource_name']:
-                lnetgw2_name = lnetgw2_parsed_id['resource_name']
-            else:
-                log.error(
-                    'Invalid Resource ID was specified as local_network_gateway2!'
-                )
-                return False
-
-            lnetgw2 = local_network_gateway_get(
-                name=lnetgw2_name,
-                resource_group=lnetgw2_rg,
-                **kwargs
-            )
-
-            if 'error' in lnetgw2:
-                log.error(
-                    'Invalid Resource ID was specified as local_network_gateway2!'
-                )
-                return False
-            else:
-                kwargs['local_network_gateway2'] = lnetgw2
+        kwargs['local_network_gateway2'] = {'id': kwargs.get('local_network_gateway2')}
 
     try:
         connectionmodel = __utils__['azurearm.create_object_model'](
             'network',
             'VirtualNetworkGatewayConnection',
-            virtual_network_gateway1=vnetgw1,
+            virtual_network_gateway1=virtual_network_gateway,
             connection_type=connection_type,
             **kwargs
         )
@@ -3631,41 +3548,6 @@ def virtual_network_gateway_get_vpn_profile_package_url(name, resource_group, **
         )
 
         result = url.result()
-    except CloudError as exc:
-        __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
-        result = {'error': str(exc)}
-
-    return result
-
-
-def virtual_network_gateway_get_vpnclient_connection_health(name, resource_group, **kwargs):
-    '''
-    .. versionadded:: Sodium
-
-    Get VPN client connection health detail per P2S client connection of the virtual network gateway
-        in the specified resource group.
-
-    :param name: The name of the virtual network gateway.
-
-    :param resource_group: The name of the resource group.
-
-    CLI Example:
-
-    .. code-block:: bash
-
-        salt-call azurearm_network.virtual_network_gateway_get_vpnclient_connection_health test_name test_group
-
-    '''
-    result = {}
-    netconn = __utils__['azurearm.get_client']('network', **kwargs)
-    try:
-        status = netconn.virtual_network_gateways.get_vpnclient_connection_health(
-            resource_group_name=resource_group,
-            virtual_network_gateway_name=name
-        )
-
-        status_result = status.result().as_dict()
-        result = status_result
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('network', str(exc), **kwargs)
         result = {'error': str(exc)}
