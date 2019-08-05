@@ -1176,3 +1176,138 @@ def policy_definitions_list(hide_builtin=False, **kwargs):
         result = {'error': str(exc)}
 
     return result
+
+
+def management_lock_create_or_update_at_resource_group_level(**kwargs):
+    pass
+
+
+def management_lock_delete_at_resource_group_level(**kwargs):
+    pass
+
+
+def management_lock_get_at_resource_group_level(**kwargs):
+    pass
+
+
+def management_lock_create_or_update_by_scope(**kwargs):
+    pass
+
+
+def management_lock_delete_by_scope(**kwargs):
+    pass
+
+
+def management_lock_get_by_scope(**kwargs):
+    pass
+
+
+def management_lock_create_or_update_at_resource_level(**kwargs):
+    pass
+
+
+def management_lock_delete_at_resource_level(**kwargs):
+    pass
+
+
+def management_lock_get_at_resource_level(**kwargs):
+    pass
+
+
+def management_lock_create_or_update_at_subscription_level(**kwargs):
+    pass
+
+
+def management_lock_delete_at_subscription_level(**kwargs):
+    pass
+
+
+def management_lock_get_at_subscription_level(**kwargs):
+    pass
+
+
+def management_locks_list_at_resource_group_level(resource_group, **kwargs):
+    '''
+    .. versionadded:: Fluorine
+
+    Gets all the management locks for a resource group.
+
+    :param resource_group: The name of the resource group containing the locks to get.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_locks_list_at_resource_group_level testgroup
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+    try:
+        result = __utils__['azurearm.paged_object_to_list'](
+            lckconn.management_locks.list_at_resource_group_level(
+                resource_group_name=resource_group,
+                filter=kwargs.get('filter')
+            )
+        )
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_locks_list_at_resource_level(**kwargs):
+    pass
+
+
+def management_locks_list_at_subscription_level(**kwargs):
+    '''
+    .. versionadded:: Fluorine
+
+    Gets all the management locks for a subscription.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_locks_list_at_subscription_level
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+    try:
+        result = __utils__['azurearm.paged_object_to_list'](lckconn.management_locks.list_at_subscription_level())
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def providers_list(**kwargs):
+    '''
+    TODO EDIT ME I AM NOT DONE
+    .. versionadded:: Sodium
+
+    List all ... stuff
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.providers_list
+
+    '''
+    result = {}
+    resconn = __utils__['azurearm.get_client']('resource', **kwargs)
+    try:
+        groups = __utils__['azurearm.paged_object_to_list'](resconn.providers.list(expand='resourceTypes/aliases'))
+
+        for group in groups:
+            result[group['namespace']] = group
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
