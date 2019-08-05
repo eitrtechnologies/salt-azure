@@ -712,3 +712,23 @@ def virtual_machine_redeploy(name, resource_group, **kwargs):
         result = {'error': str(exc)}
 
     return result
+
+
+def image_create_or_update(**kwargs):
+    pass
+
+
+def image_delete(**kwargs):
+    pass
+
+
+def image_get(**kwargs):
+    pass
+
+
+def images_list_by_resource_group(**kwargs):
+    pass
+
+
+def images_list(**kwargs):
+    pass
