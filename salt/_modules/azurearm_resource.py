@@ -1228,7 +1228,7 @@ def management_lock_get_at_subscription_level(**kwargs):
 
 def management_locks_list_at_resource_group_level(resource_group, **kwargs):
     '''
-    .. versionadded:: Fluorine
+    .. versionadded:: Sodium
 
     Gets all the management locks for a resource group.
 
@@ -1263,7 +1263,7 @@ def management_locks_list_at_resource_level(**kwargs):
 
 def management_locks_list_at_subscription_level(**kwargs):
     '''
-    .. versionadded:: Fluorine
+    .. versionadded:: Sodium
 
     Gets all the management locks for a subscription.
 
@@ -1285,12 +1285,16 @@ def management_locks_list_at_subscription_level(**kwargs):
     return result
 
 
-def providers_list(**kwargs):
+def providers_list(top=None, expand=None, **kwargs):
     '''
-    TODO EDIT ME I AM NOT DONE
     .. versionadded:: Sodium
 
-    List all ... stuff
+    List all resource providers for a subscription.
+
+    :param top: The number of results to return. Default returns all providers.
+
+    :param expand: The properties to include in the results. For example, use 'metadata' in the query string
+        to retrieve resource provider metadata. To include property aliases in response, use 'resourceTypes/aliases'.
 
     CLI Example:
 
@@ -1301,8 +1305,17 @@ def providers_list(**kwargs):
     '''
     result = {}
     resconn = __utils__['azurearm.get_client']('resource', **kwargs)
+
+    if not expand:
+        expand = 'resourceTypes/aliases'
+
     try:
-        groups = __utils__['azurearm.paged_object_to_list'](resconn.providers.list(expand='resourceTypes/aliases'))
+        groups = __utils__['azurearm.paged_object_to_list'](
+            resconn.providers.list(
+                top=top,
+                expand=expand
+            )
+        )
 
         for group in groups:
             result[group['namespace']] = group
