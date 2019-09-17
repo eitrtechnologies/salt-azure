@@ -1316,9 +1316,11 @@ def management_lock_create_or_update_by_scope(name, scope, lock_level, **kwargs)
     :param name: The name of the lock. The lock name can be a maximum of 260 characters. It cannot contain
         <, > %, &, :, , ?, /, or any control characters.
 
-    :param scope: The scope for the lock. When providing a scope for the assignment, use '/subscriptions/{subscriptionId}' for subscriptions,
+    :param scope: The scope for the lock. When providing a scope for the assignment,
+        use '/subscriptions/{subscriptionId}' for subscriptions,
         '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
-        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}' for resources.
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
 
     :param lock_level: The level of the lock. Possible values are: 'NotSpecified', 'CanNotDelete', & 'ReadOnly'.
         CanNotDelete means authorized users are able to read and modify the resources, but not delete. ReadOnly means
@@ -1371,9 +1373,11 @@ def management_lock_delete_by_scope(name, scope, **kwargs):
 
     :param name: The name of the lock to be deleted.
 
-    :param scope: The scope for the lock. When providing a scope for the assignment, use '/subscriptions/{subscriptionId}' for subscriptions,
+    :param scope: The scope for the lock. When providing a scope for the assignment, 
+        use '/subscriptions/{subscriptionId}' for subscriptions, 
         '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
-        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}' for resources.
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
 
     CLI Example:
 
@@ -1408,9 +1412,11 @@ def management_lock_get_by_scope(name, scope, **kwargs):
 
     :param name: The name of the lock to get.
 
-    :param scope: The scope for the lock. When providing a scope for the assignment, use '/subscriptions/{subscriptionId}' for subscriptions,
+    :param scope: The scope for the lock. When providing a scope for the assignment,
+        use '/subscriptions/{subscriptionId}' for subscriptions,
         '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
-        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}' for resources.
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
 
     CLI Example:
 
@@ -1847,6 +1853,12 @@ def management_locks_list_by_scope(scope, **kwargs):
     .. versionadded:: Sodium
 
     Gets all the management locks for a scope.
+
+    :param scope: The scope for the lock. When providing a scope for the assignment,
+        use '/subscriptions/{subscriptionId}' for subscriptions,
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
 
     :param scope: The scope for the lock. When providing a scope for the assignment, use '/subscriptions/{subscriptionId}' for subscriptions,
         '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
