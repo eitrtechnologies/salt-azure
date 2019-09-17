@@ -1839,7 +1839,11 @@ def management_locks_list_at_subscription_level(**kwargs):
     lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
 
     try:
-        result = __utils__['azurearm.paged_object_to_list'](lckconn.management_locks.list_at_subscription_level())
+        result = __utils__['azurearm.paged_object_to_list'](
+            lckconn.management_locks.list_at_subscription_level(
+                filter=kwargs.get('filter')
+            )
+        )
 
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
