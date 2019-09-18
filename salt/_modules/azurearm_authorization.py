@@ -77,32 +77,33 @@ def __virtual__():
     return __virtualname__
 
 
-def provider_operations_metadata_get(name, **kwargs):
+def provider_operations_metadata_get(resource_provider_namespace, **kwargs):
     '''
-    TODO EDIT ME I AM NOT DONE
     .. versionadded:: Sodium
 
-    Get a ... stuff
+    Gets provider operations metadata for the specified resource provider.
 
-    :param name: The provider to get.
+    :param resource_provider_namespace: The namespace of the resource provider.
 
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_authorization.provider_operations_metadata_get myprovider
+        salt-call azurearm_authorization.provider_operations_metadata_get testnamespace
 
     '''
-    moniconn = __utils__['azurearm.get_client']('monitor', **kwargs)
+    result = {}
+    authconn = __utils__['azurearm.get_client']('authorization', **kwargs)
     try:
-        diag = moniconn.service_diagnostic_settings.get(
-            resource_uri=resource_group,
-            name=name
+        data = authconn.provider_operations_metadata.get(
+            resource_provider_namespace=resource_provider_namespace,
+            api_version='2015-07-01',
+            **kwargs
         )
-        result = diag.as_dict()
 
+        result = data.as_dict()
     except CloudError as exc:
-        __utils__['azurearm.log_cloud_error']('monitor', str(exc), **kwargs)
+        __utils__['azurearm.log_cloud_error']('authorization', str(exc), **kwargs)
         result = {'error': str(exc)}
 
     return result
@@ -112,7 +113,7 @@ def provider_operations_metadata_list(**kwargs):
     '''
     .. versionadded:: Sodium
 
-    List all ... stuff
+    Gets provider operations metadata for all resource providers.
 
     CLI Example:
 
@@ -123,8 +124,14 @@ def provider_operations_metadata_list(**kwargs):
     '''
     result = {}
     authconn = __utils__['azurearm.get_client']('authorization', **kwargs)
+    
     try:
-        providers = __utils__['azurearm.paged_object_to_list'](authconn.provider_operations_metadata.list(api_version='2015-07-01'))
+        providers = __utils__['azurearm.paged_object_to_list'](
+            authconn.provider_operations_metadata.list(
+                api_version='2015-07-01',
+                **kwargs
+            )
+        )
 
         for provider in providers:
             result[provider['name']] = provider
@@ -133,3 +140,199 @@ def provider_operations_metadata_list(**kwargs):
         result = {'error': str(exc)}
 
     return result
+
+
+def permissions_list_for_resource(name, resource_group, resource_provider_namespace, resource_type,
+                                  parent_resource_path=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets all permissions the caller has for a resource.
+
+    :param name: The name of the resource to get permissions for.
+
+    :param resource_group: The name of the resource group containing the resource. The name is case insensitive.
+
+    :param resource_provider_namespace: The namespace of the resource provider.
+
+    :param resource_type: The resource type of the resource.
+
+    :param parent_resource_path: The namespace of the resource provider.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_authorization.permissions_list_for_resource testname testgroup testnamespace \
+                  testtype testpath
+
+    '''
+    result = {}
+    authconn = __utils__['azurearm.get_client']('authorization', **kwargs)
+
+    if parent_resource_path is None:
+        parent_resource_path = ''
+
+    try:
+        perms = __utils__['azurearm.paged_object_to_list'](
+            authconn.permissions.list_for_resource(
+                resource_name=name,
+                resource_group_name=resource_group,
+                resource_provider_namespace=resource_provider_namespace,
+                resource_type=resource_type,
+                parent_resource_path=parent_resource_path,
+                **kwargs
+            )
+        )
+
+        result = perms
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('authorization', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def permissions_list_for_resource_group(name, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets all permissions the caller has for a resource group.
+
+    :param name: The name of the resource group to get the permissions for. The name is case insensitive.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_authorization.permissions_list_for_resource_group testname
+
+    '''
+    result = {}
+    authconn = __utils__['azurearm.get_client']('authorization', **kwargs)
+
+    try:
+        perms = __utils__['azurearm.paged_object_to_list'](
+            authconn.permissions.list_for_resource_group(
+                resource_group_name=name,
+                **kwargs
+            )
+        )
+
+        result = perms
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('authorization', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def role_definitions_get(scope, id, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Get role definition by name (GUID).
+
+    :param scope: The scope of the role definition.
+
+    :param id: The ID of the role definition.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_authorization.role_definitions_get testscope testid
+
+    '''
+    result = {}
+    authconn = __utils__['azurearm.get_client']('authorization', **kwargs)
+
+    try:
+        defs = __utils__['azurearm.paged_object_to_list'](
+            authconn.role_definitions.get(
+                scope=scope,
+                role_definition_id=id,
+                **kwargs
+            )
+        )
+
+        result = defs
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('authorization', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def role_definitions_get_by_id(id, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets a role definition by ID.
+
+    :param id: The fully qualified role definition ID. Use the format, 
+        /subscriptions/{guid}/providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId} for subscription 
+        level role definitions, or /providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId} for tenant 
+        level role definitions.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_authorization.role_definitions_get_by_id testid
+
+    '''
+    result = {}
+    authconn = __utils__['azurearm.get_client']('authorization', **kwargs)
+
+    try:
+        defs = __utils__['azurearm.paged_object_to_list'](
+            authconn.role_definitions.get_by_id(
+                role_definition_id=id,
+                **kwargs
+            )
+        )
+
+        result = defs
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('authorization', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def role_definitions_list(scope, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Get all role definitions that are applicable at scope and above.
+
+    :param scope: The scope of the role definition.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_authorization.role_definitions_list testscope
+
+    '''
+    result = {}
+    authconn = __utils__['azurearm.get_client']('authorization', **kwargs)
+
+    try:
+        defs = __utils__['azurearm.paged_object_to_list'](
+            authconn.role_definitions.list(
+                scope=scope,
+                filter=kwargs.get('filter'),
+                **kwargs
+            )
+        )
+
+        result = defs
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('authorization', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
