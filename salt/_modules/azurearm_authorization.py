@@ -91,7 +91,7 @@ def provider_operations_metadata_get(resource_provider_namespace, api_version='2
 
     .. code-block:: bash
 
-        salt-call azurearm_authorization.provider_operations_metadata_get testnamespace testapi
+        salt-call azurearm_authorization.provider_operations_metadata_get testnamespace
 
     '''
     result = {}
@@ -123,7 +123,7 @@ def provider_operations_metadata_list(api_version='2015-07-01',**kwargs):
 
     .. code-block:: bash
 
-        salt-call azurearm_authorization.provider_operations_metadata_list testapi
+        salt-call azurearm_authorization.provider_operations_metadata_list
 
     '''
     result = {}
@@ -231,13 +231,13 @@ def permissions_list_for_resource_group(name, **kwargs):
     return result
 
 
-def role_definitions_get(idname, scope, **kwargs):
+def role_definitions_get(role_id, scope, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Get role definition by name (GUID).
 
-    :param idname: The ID of the role definition.
+    :param role_id: The ID of the role definition.
 
     :param scope: The scope of the role definition.
 
@@ -254,7 +254,7 @@ def role_definitions_get(idname, scope, **kwargs):
     try:
         defs = authconn.role_definitions.get(
             scope=scope,
-            role_definition_id=idname,
+            role_definition_id=role_id,
             **kwargs
         )
 
@@ -266,13 +266,13 @@ def role_definitions_get(idname, scope, **kwargs):
     return result
 
 
-def role_definitions_get_by_id(idname, **kwargs):
+def role_definitions_get_by_id(role_id, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Gets a role definition by ID.
 
-    :param idname: The fully qualified role definition ID. Use the format,
+    :param role_id: The fully qualified role definition ID. Use the format,
         /subscriptions/{guid}/providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId} for subscription
         level role definitions, or /providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId} for tenant
         level role definitions.
@@ -289,7 +289,7 @@ def role_definitions_get_by_id(idname, **kwargs):
 
     try:
         defs = authconn.role_definitions.get_by_id(
-            role_definition_id=idname,
+            role_definition_id=role_id,
             **kwargs
         )
 
@@ -371,13 +371,13 @@ def role_assignments_get(name, scope, **kwargs):
     return result
 
 
-def role_assignments_get_by_id(idname, **kwargs):
+def role_assignments_get_by_id(assignment_id, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Gets a role assignment by ID.
 
-    :param idname: The fully qualified ID of the role assignment, including the scope, resource name and resource type.
+    :param assignment_id: The fully qualified ID of the role assignment, including the scope, resource name and resource type.
         Use the format, /{scope}/providers/Microsoft.Authorization/roleAssignments/{roleAssignmentName}. Example:
         /subscriptions/{subId}/resourcegroups/{rgname}//providers/Microsoft.Authorization/roleAssignments/{roleAssignmentName}.
 
@@ -393,7 +393,7 @@ def role_assignments_get_by_id(idname, **kwargs):
 
     try:
         assigns = authconn.role_assignments.get_by_id(
-            role_assignment_id=idname,
+            role_assignment_id=assignment_id,
             **kwargs
             )
 
