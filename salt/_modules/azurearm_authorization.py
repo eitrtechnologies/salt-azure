@@ -77,7 +77,7 @@ def __virtual__():
     return __virtualname__
 
 
-def provider_operations_metadata_get(resource_provider_namespace, **kwargs):
+def provider_operations_metadata_get(resource_provider_namespace, api_version='2015-07-01', **kwargs):
     '''
     .. versionadded:: Sodium
 
@@ -85,11 +85,13 @@ def provider_operations_metadata_get(resource_provider_namespace, **kwargs):
 
     :param resource_provider_namespace: The namespace of the resource provider.
 
+    :param api_version: The API version to use for the operation.
+
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_authorization.provider_operations_metadata_get testnamespace
+        salt-call azurearm_authorization.provider_operations_metadata_get testnamespace testapi
 
     '''
     result = {}
@@ -97,7 +99,7 @@ def provider_operations_metadata_get(resource_provider_namespace, **kwargs):
     try:
         data = authconn.provider_operations_metadata.get(
             resource_provider_namespace=resource_provider_namespace,
-            api_version='2015-07-01',
+            api_version=api_version,
             **kwargs
         )
 
@@ -109,17 +111,19 @@ def provider_operations_metadata_get(resource_provider_namespace, **kwargs):
     return result
 
 
-def provider_operations_metadata_list(**kwargs):
+def provider_operations_metadata_list(api_version='2015-07-01',**kwargs):
     '''
     .. versionadded:: Sodium
 
     Gets provider operations metadata for all resource providers.
 
+    :param api_version: The API version to use for the operation.
+
     CLI Example:
 
     .. code-block:: bash
 
-        salt-call azurearm_authorization.provider_operations_metadata_list
+        salt-call azurearm_authorization.provider_operations_metadata_list testapi
 
     '''
     result = {}
@@ -128,7 +132,7 @@ def provider_operations_metadata_list(**kwargs):
     try:
         providers = __utils__['azurearm.paged_object_to_list'](
             authconn.provider_operations_metadata.list(
-                api_version='2015-07-01',
+                api_version=api_version,
                 **kwargs
             )
         )
@@ -227,13 +231,13 @@ def permissions_list_for_resource_group(name, **kwargs):
     return result
 
 
-def role_definitions_get(id, scope, **kwargs):
+def role_definitions_get(idname, scope, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Get role definition by name (GUID).
 
-    :param id: The ID of the role definition.
+    :param idname: The ID of the role definition.
 
     :param scope: The scope of the role definition.
 
@@ -250,7 +254,7 @@ def role_definitions_get(id, scope, **kwargs):
     try:
         defs = authconn.role_definitions.get(
             scope=scope,
-            role_definition_id=id,
+            role_definition_id=idname,
             **kwargs
         )
 
@@ -262,13 +266,13 @@ def role_definitions_get(id, scope, **kwargs):
     return result
 
 
-def role_definitions_get_by_id(id, **kwargs):
+def role_definitions_get_by_id(idname, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Gets a role definition by ID.
 
-    :param id: The fully qualified role definition ID. Use the format,
+    :param idname: The fully qualified role definition ID. Use the format,
         /subscriptions/{guid}/providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId} for subscription
         level role definitions, or /providers/Microsoft.Authorization/roleDefinitions/{roleDefinitionId} for tenant
         level role definitions.
@@ -285,7 +289,7 @@ def role_definitions_get_by_id(id, **kwargs):
 
     try:
         defs = authconn.role_definitions.get_by_id(
-            role_definition_id=id,
+            role_definition_id=idname,
             **kwargs
         )
 
@@ -367,13 +371,13 @@ def role_assignments_get(name, scope, **kwargs):
     return result
 
 
-def role_assignments_get_by_id(id, **kwargs):
+def role_assignments_get_by_id(idname, **kwargs):
     '''
     .. versionadded:: Sodium
 
     Gets a role assignment by ID.
 
-    :param id: The fully qualified ID of the role assignment, including the scope, resource name and resource type.
+    :param idname: The fully qualified ID of the role assignment, including the scope, resource name and resource type.
         Use the format, /{scope}/providers/Microsoft.Authorization/roleAssignments/{roleAssignmentName}. Example:
         /subscriptions/{subId}/resourcegroups/{rgname}//providers/Microsoft.Authorization/roleAssignments/{roleAssignmentName}.
 
@@ -389,7 +393,7 @@ def role_assignments_get_by_id(id, **kwargs):
 
     try:
         assigns = authconn.role_assignments.get_by_id(
-            role_assignment_id=id,
+            role_assignment_id=idname,
             **kwargs
             )
 
