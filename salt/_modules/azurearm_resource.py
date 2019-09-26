@@ -1176,3 +1176,759 @@ def policy_definitions_list(hide_builtin=False, **kwargs):
         result = {'error': str(exc)}
 
     return result
+
+
+def management_lock_create_or_update_at_resource_group_level(name, resource_group, lock_level, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Creates or updates a management lock at the resource group level. When you apply a lock at a parent scope,
+        all child resources inherit the same lock. To create management locks, you must have access to
+        Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock. The lock name can be a maximum of 260 characters. It cannot contain
+        <, > %, &, :, , ?, /, or any control characters.
+
+    :param resource_group: The name of the resource group.
+
+    :param lock_level: The level of the lock. Possible values are: 'NotSpecified', 'CanNotDelete', & 'ReadOnly'.
+        CanNotDelete means authorized users are able to read and modify the resources, but not delete. ReadOnly means
+        authorized users can only read from a resource, but they can't modify or delete it.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_create_or_update_at_resource_group_level testname testgroup \
+                  testlevel
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lockmodel = __utils__['azurearm.create_object_model'](
+            'resource.locks',
+            'ManagementLockObject',
+            level=lock_level,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        lock = lckconn.management_locks.create_or_update_at_resource_group_level(
+            resource_group_name=resource_group,
+            lock_name=name,
+            parameters=lockmodel
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
+
+
+def management_lock_delete_at_resource_group_level(name, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Deletes a management lock at the resource group level. To delete management locks, you must have access to
+        Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock to be deleted.
+
+    :param resource_group: The name of the resource group.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_delete_at_resource_group_level testname testgroup
+
+    '''
+    result = False
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lock = lckconn.management_locks.delete_at_resource_group_level(
+            resource_group_name=resource_group,
+            lock_name=name,
+            **kwargs
+        )
+
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_lock_get_at_resource_group_level(name, resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets a management lock at the resource group level.
+
+    :param name: The name of the lock to get.
+
+    :param resource_group: The name of the resource group.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_get_at_resource_group_level testname testgroup
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lock = lckconn.management_locks.get_at_resource_group_level(
+            resource_group_name=resource_group,
+            lock_name=name,
+            **kwargs
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_lock_create_or_update_by_scope(name, scope, lock_level, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Create or update a management lock by scope. When you apply a lock at a parent scope,
+        all child resources inherit the same lock. To create management locks, you must have access to
+        Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock. The lock name can be a maximum of 260 characters. It cannot contain
+        <, > %, &, :, , ?, /, or any control characters.
+
+    :param scope: The scope for the lock. When providing a scope for the assignment,
+        use '/subscriptions/{subscriptionId}' for subscriptions,
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
+
+    :param lock_level: The level of the lock. Possible values are: 'NotSpecified', 'CanNotDelete', & 'ReadOnly'.
+        CanNotDelete means authorized users are able to read and modify the resources, but not delete. ReadOnly means
+        authorized users can only read from a resource, but they can't modify or delete it.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_create_or_update_by_scope testname testscope testlevel
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lockmodel = __utils__['azurearm.create_object_model'](
+            'resource.locks',
+            'ManagementLockObject',
+            level=lock_level,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        lock = lckconn.management_locks.create_or_update_by_scope(
+            scope=scope,
+            lock_name=name,
+            parameters=lockmodel
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
+
+
+def management_lock_delete_by_scope(name, scope, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Delete a management lock by scope. To delete management locks, you must have access to
+        Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock to be deleted.
+
+    :param scope: The scope for the lock. When providing a scope for the assignment, 
+        use '/subscriptions/{subscriptionId}' for subscriptions, 
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_delete_by_scope testname testscope
+
+    '''
+    result = False
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lock = lckconn.management_locks.delete_by_scope(
+            scope=scope,
+            lock_name=name,
+            **kwargs
+        )
+
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_lock_get_by_scope(name, scope, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Get a management lock by scope.
+
+    :param name: The name of the lock to get.
+
+    :param scope: The scope for the lock. When providing a scope for the assignment,
+        use '/subscriptions/{subscriptionId}' for subscriptions,
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_get_by_scope testname testscope
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lock = lckconn.management_locks.get_by_scope(
+            scope=scope,
+            lock_name=name,
+            **kwargs
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_lock_create_or_update_at_resource_level(name, lock_level, resource_group, resource, resource_type,
+                                                       resource_provider_namespace, parent_resource_path=None,
+                                                       **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Creates or updates a management lock at the resource level or any level below the resource. When you apply a lock
+        at a parent scope, all child resources inherit the same lock. To create management locks, you must have access
+        to Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock. The lock name can be a maximum of 260 characters. It cannot contain
+        <, > %, &, :, , ?, /, or any control characters.
+
+    :param lock_level: The level of the lock. Possible values are: 'NotSpecified', 'CanNotDelete', & 'ReadOnly'.
+        CanNotDelete means authorized users are able to read and modify the resources, but not delete. ReadOnly means
+        authorized users can only read from a resource, but they can't modify or delete it.
+
+    :param resource_group: The name of the resource group containing the resource to lock.
+
+    :param resource: The name of the resource to lock.
+
+    :param resource_type: The resource type of the resource to lock.
+
+    :param resource_provider_namespace: The resource provider namespace of the resource to lock.
+
+    :param parent_resource_path: The parent resource identity.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_create_or_update_at_resource_level testname testlevel testgroup \
+                  testresource testtype testnamespace testpath
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lockmodel = __utils__['azurearm.create_object_model'](
+            'resource.locks',
+            'ManagementLockObject',
+            level=lock_level,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    if parent_resource_path is None:
+        parent_resource_path = ''
+
+    try:
+        lock = lckconn.management_locks.create_or_update_at_resource_level(
+            resource_group_name=resource_group,
+            lock_name=name,
+            resource_name=resource,
+            resource_provider_namespace=resource_provider_namespace,
+            resource_type=resource_type,
+            parent_resource_path=parent_resource_path,
+            parameters=lockmodel
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
+
+
+def management_lock_delete_at_resource_level(name, resource_group, resource, resource_type, resource_provider_namespace,
+                                             parent_resource_path=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Deletes the management lock of a resource or any level below the resource. When you apply a lock
+        at a parent scope, all child resources inherit the same lock. To delete management locks, you must have access
+        to Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock to delete.
+
+    :param resource_group: The name of the resource group containing the resource with the lock to delete.
+
+    :param resource: The name of the resource with the lock to delete.
+
+    :param resource_type: The resource type of the resource with the lock to delete.
+
+    :param resource_provider_namespace: The resource provider namespace of the resource with the lock to delete.
+
+    :param parent_resource_path: The parent resource identity.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_delete_at_resource_level testname testgroup testresource \
+                  testtype testnamespace testpath
+
+    '''
+    result = False
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    if parent_resource_path is None:
+        parent_resource_path = ''
+
+    try:
+        lock = lckconn.management_locks.delete_at_resource_level(
+            lock_name=name,
+            resource_group_name=resource_group,
+            resource_name=resource,
+            resource_provider_namespace=resource_provider_namespace,
+            resource_type=resource_type,
+            parent_resource_path=parent_resource_path,
+            **kwargs
+        )
+
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_lock_get_at_resource_level(name, resource_group, resource, resource_type, resource_provider_namespace,
+                                          parent_resource_path=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Get the management lock of a resource or any level below resource.
+
+    :param name: The name of the lock.
+
+    :param resource_group: The name of the resource group.
+
+    :param resource: The name of the resource.
+
+    :param resource_type: The type of the resource.
+
+    :param resource_provider_namespace: The namespace of the resource provider.
+
+    :param parent_resource_path: The parent resource identity.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_get_at_resource_level testname testgroup testresource \
+                  testtype testnamespace testpath
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    if parent_resource_path is None:
+        parent_resource_path = ''
+
+    try:
+        lock = lckconn.management_locks.get_at_resource_level(
+            lock_name=name,
+            resource_group_name=resource_group,
+            resource_name=resource,
+            resource_provider_namespace=resource_provider_namespace,
+            resource_type=resource_type,
+            parent_resource_path=parent_resource_path,
+            **kwargs
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_lock_create_or_update_at_subscription_level(name, lock_level, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Creates or updates a management lock at the subscription level. When you apply a lock at a parent scope,
+        all child resources inherit the same lock. To create management locks, you must have access to
+        Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock. The lock name can be a maximum of 260 characters. It cannot contain
+        <, > %, &, :, , ?, /, or any control characters.
+
+    :param lock_level: The level of the lock. Possible values are: 'NotSpecified', 'CanNotDelete', & 'ReadOnly'.
+        CanNotDelete means authorized users are able to read and modify the resources, but not delete. ReadOnly means
+        authorized users can only read from a resource, but they can't modify or delete it.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_create_or_update_at_subscription_level testname testlevel
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lockmodel = __utils__['azurearm.create_object_model'](
+            'resource.locks',
+            'ManagementLockObject',
+            level=lock_level,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        lock = lckconn.management_locks.create_or_update_at_subscription_level(
+            lock_name=name,
+            parameters=lockmodel
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+    except SerializationError as exc:
+        result = {'error': 'The object model could not be parsed. ({0})'.format(str(exc))}
+
+    return result
+
+
+def management_lock_delete_at_subscription_level(name, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Deletes the management lock at the subscription level. To delete management locks, you must have access to
+        Microsoft.Authorization/* or Microsoft.Authorization/locks/* actions.
+
+    :param name: The name of the lock to be deleted.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_delete_at_subscription_level testname
+
+    '''
+    result = False
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lock = lckconn.management_locks.delete_at_subscription_level(
+            lock_name=name,
+            **kwargs
+        )
+
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_lock_get_at_subscription_level(name, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets a management lock at the subscription level.
+
+    :param name: The name of the lock to get.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_lock_get_at_subscription_level testname
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        lock = lckconn.management_locks.get_at_subscription_level(
+            lock_name=name,
+            **kwargs
+        )
+
+        result = lock.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_locks_list_at_resource_group_level(resource_group, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets all the management locks for a resource group.
+
+    :param resource_group: The name of the resource group containing the locks to get.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_locks_list_at_resource_group_level testgroup
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        result = __utils__['azurearm.paged_object_to_list'](
+            lckconn.management_locks.list_at_resource_group_level(
+                resource_group_name=resource_group,
+                filter=kwargs.get('filter')
+            )
+        )
+
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_locks_list_at_resource_level(resource_group, resource, resource_type, resource_provider_namespace,
+                                          parent_resource_path=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Get the management lock of a resource or any level below resource.
+
+    :param resource_group: The name of the resource group.
+
+    :param resource: The name of the resource.
+
+    :param resource_type: The type of the resource.
+
+    :param resource_provider_namespace: The namespace of the resource provider.
+
+    :param parent_resource_path: The parent resource identity.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_locks_list_at_resource_level testgroup testresource testtype \
+                  testnamespace testpath
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    if parent_resource_path is None:
+        parent_resource_path = ''
+
+    try:
+        result = __utils__['azurearm.paged_object_to_list'](
+            lckconn.management_locks.list_at_resource_level(
+                resource_group_name=resource_group,
+                resource_name=resource,
+                resource_provider_namespace=resource_provider_namespace,
+                resource_type=resource_type,
+                parent_resource_path=parent_resource_path,
+                filter=kwargs.get('filter')
+            )
+        )
+
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_locks_list_at_subscription_level(**kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets all the management locks for a subscription.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_locks_list_at_subscription_level
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        result = __utils__['azurearm.paged_object_to_list'](
+            lckconn.management_locks.list_at_subscription_level(
+                filter=kwargs.get('filter')
+            )
+        )
+
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def management_locks_list_by_scope(scope, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets all the management locks for a scope.
+
+    :param scope: The scope for the lock. When providing a scope for the assignment,
+        use '/subscriptions/{subscriptionId}' for subscriptions,
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}'
+        for resources.
+
+    :param scope: The scope for the lock. When providing a scope for the assignment, use '/subscriptions/{subscriptionId}' for subscriptions,
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}' for resource groups, and
+        '/subscriptions/{subscriptionId}/resourcegroups/{resourceGroupName}/providers/{resourceProviderNamespace}/{parentResourcePathIfPresent}/{resourceType}/{resourceName}' for resources.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.management_locks_list_by_scope testscope
+
+    '''
+    result = {}
+    lckconn = __utils__['azurearm.get_client']('managementlock', **kwargs)
+
+    try:
+        result = __utils__['azurearm.paged_object_to_list'](
+            lckconn.management_locks.list_by_scope(
+                scope=scope,
+                filter=kwargs.get('filter')
+            )
+        )
+
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def providers_list(top=None, expand=None, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    List all resource providers for a subscription.
+
+    :param top: The number of results to return. Default returns all providers.
+
+    :param expand: The properties to include in the results. For example, use 'metadata' in the query string
+        to retrieve resource provider metadata. To include property aliases in response, use 'resourceTypes/aliases'.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_resource.providers_list
+
+    '''
+    result = {}
+    resconn = __utils__['azurearm.get_client']('resource', **kwargs)
+
+    if not expand:
+        expand = 'resourceTypes/aliases'
+
+    try:
+        groups = __utils__['azurearm.paged_object_to_list'](
+            resconn.providers.list(
+                top=top,
+                expand=expand
+            )
+        )
+
+        for group in groups:
+            result[group['namespace']] = group
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('resource', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
