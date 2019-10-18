@@ -11,6 +11,7 @@ Azure (ARM) Monitor Execution Module
     * `azure-common <https://pypi.python.org/pypi/azure-common>`_ >= 1.1.8
     * `azure-mgmt <https://pypi.python.org/pypi/azure-mgmt>`_ >= 1.0.0
     * `azure-mgmt-compute <https://pypi.python.org/pypi/azure-mgmt-compute>`_ >= 1.0.0
+    * `azure-mgmt-monitor <https://pypi.org/project/azure-mgmt-monitor>`_ >= 0.5.2
     * `azure-mgmt-network <https://pypi.python.org/pypi/azure-mgmt-network>`_ >= 1.7.1
     * `azure-mgmt-resource <https://pypi.python.org/pypi/azure-mgmt-resource>`_ >= 1.1.0
     * `azure-mgmt-storage <https://pypi.python.org/pypi/azure-mgmt-storage>`_ >= 1.0.0
@@ -77,13 +78,90 @@ def __virtual__():
     return __virtualname__
 
 
-def diagnostic_setting_get(name, resource_group, **kwargs):
+def diagnostic_settings_create_or_update(name, resource_uri, metrics, logs, workspace_id=None, storage_account_id=None,
+                                         service_bus_rule_id=None, event_hub_authorization_rule_id=None,
+                                         event_hub_name=None, **kwargs):
     '''
     .. versionadded:: Sodium
 
-    Get a dictionary representing a diagnostic setting's properties.
+    Create or update diagnostic settings for the specified resource. At least one destination for the diagnostic
+        setting is required. The three possible destinations for the diagnostic settings are as follows:
+            1. Archive the diagnostic settings to a stroage account. This would require the storage_account_id param.
+            2. Stream the diagnostic settings to an event hub. This would require the event_hub_name and
+               event_hub_authorization_rule_id params.
+            3. Send the diagnostic settings to Log Analytics. This would require the workspace_id param.
+        Any combination of these destinations is acceptable.
 
-    :param name: The diagnostic setting to get.
+    :param name: The name of the diagnostic setting.
+
+    :param resource_uri: The identifier of the resource.
+
+    :param metrics: The list of metric settings. This is a list of dictionaries representing MetricSettings objects.
+
+    :param logs: The list of logs settings. This is a list of dictionaries representing LogSettings objects.
+
+    :param workspace_id: The workspace ID (resource ID of a Log Analytics workspace) for a Log Analytics workspace to
+        which you would like to send Diagnostic Logs.
+
+    :param storage_account_id: The resource ID of the storage account to which you would like to send Diagnostic Logs.
+
+    :param service_bus_rule_id: The service bus rule ID of the diagnostic setting.
+        This is here to maintain backwards compatibility.
+
+    :param event_hub_authorization_rule_id: The resource ID for the event hub authorization rule.
+
+    :param event_hub_name: The name of the event hub. If none is specified, the default event hub will be selected.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_monitor.diagnostic_settings_create_or_update testname testuri testmetrics testlogs \
+                  testdestination
+
+    '''
+    result = {}
+    moniconn = __utils__['azurearm.get_client']('monitor', **kwargs)
+
+    try:
+        diagmodel = __utils__['azurearm.create_object_model'](
+            'monitor',
+            'DiagnosticSettingsResource',
+            metrics=metrics,
+            logs=logs,
+            workspace_id=workspace_id,
+            storage_account_id=storage_account_id,
+            service_bus_rule_id=service_bus_rule_id,
+            event_hub_authorization_rule_id=event_hub_authorization_rule_id,
+            event_hub_name=event_hub_name,
+            **kwargs
+        )
+    except TypeError as exc:
+        result = {'error': 'The object model could not be built. ({0})'.format(str(exc))}
+        return result
+
+    try:
+        diag = moniconn.diagnostic_settings.create_or_update(
+            name=name,
+            resource_uri=resource_uri,
+            parameters=diagmodel
+        )
+
+        result = diag.as_dict()
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('monitor', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def diagnostic_settings_delete(name, resource_uri, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Deletes existing diagnostic settings for the specified resource.
+
+    :param name: The name of the diagnostic setting.
 
     :param resource_uri: The identifier of the resource.
 
@@ -91,17 +169,84 @@ def diagnostic_setting_get(name, resource_group, **kwargs):
 
     .. code-block:: bash
 
-        salt-call azurearm_monitor.diagnostic_setting_get mydiag /id/path
+        salt-call azurearm_monitor.diagnostic_settings_delete testname testuri
 
     '''
+    result = False
+    moniconn = __utils__['azurearm.get_client']('monitor', **kwargs)
+    try:
+        diag = moniconn.diagnostic_settings.delete(
+            name=name,
+            resource_uri=resource_uri,
+            **kwargs
+        )
+
+        result = True
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('monitor', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def diagnostic_settings_get(name, resource_uri, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets the active diagnostic settings for the specified resource.
+
+    :param name: The name of the diagnostic setting.
+
+    :param resource_uri: The identifier of the resource.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_monitor.diagnostic_settings_get testname testuri
+
+    '''
+    result = {}
     moniconn = __utils__['azurearm.get_client']('monitor', **kwargs)
     try:
         diag = moniconn.diagnostic_settings.get(
-            resource_uri=resource_group,
-            name=name
+            name=name,
+            resource_uri=resource_uri,
+            **kwargs
         )
         result = diag.as_dict()
 
+    except CloudError as exc:
+        __utils__['azurearm.log_cloud_error']('monitor', str(exc), **kwargs)
+        result = {'error': str(exc)}
+
+    return result
+
+
+def diagnostic_settings_list(resource_uri, **kwargs):
+    '''
+    .. versionadded:: Sodium
+
+    Gets the active diagnostic settings list for the specified resource.
+
+    :param resource_uri: The identifier of the resource.
+
+    CLI Example:
+
+    .. code-block:: bash
+
+        salt-call azurearm_monitor.diagnostic_settings_get testname testuri
+
+    '''
+    result = {}
+    moniconn = __utils__['azurearm.get_client']('monitor', **kwargs)
+    try:
+        diag = moniconn.diagnostic_settings.list(
+            resource_uri=resource_uri,
+            **kwargs
+        )
+
+        result = diag.as_dict()
     except CloudError as exc:
         __utils__['azurearm.log_cloud_error']('monitor', str(exc), **kwargs)
         result = {'error': str(exc)}
