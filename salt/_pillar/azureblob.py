@@ -7,7 +7,6 @@ Use Azure Blob as a Pillar source
 :maintainer: <devops@eitr.tech>
 :maturity: new
 :depends:
-:depends:
     * `azure-storage-blob <https://pypi.org/project/azure-storage-blob/>`_ >= 12.0.0
 
 The Azure Blob external pillar can be configured with the following parameters:
@@ -16,12 +15,12 @@ The Azure Blob external pillar can be configured with the following parameters:
 
     ext_pillar:
       - azureblob:
-          container:
-          connection_string:
-          multiple_env:
-          environment:
-          blob_cache_expire:
-          blob_sync_on_update:
+          container: 'test_container'
+          connection_string: 'connection_string'
+          multiple_env: False
+          environment: 'base'
+          blob_cache_expire: 30
+          blob_sync_on_update: True
 
 :param container: The name of the target Azure Blob Container.
 
@@ -70,6 +69,15 @@ __virtualname__ = 'azureblob'
 # Set up logging
 log = logging.getLogger(__name__)
 
+def __virtual__():
+    if not HAS_LIBS:
+        return (
+            False,
+            'The following dependency is required to use the Azure Blob ext_pillar: '
+            'Microsoft Storage Blob >= 12.0.0 '
+        )
+
+    return __virtualname__
 
 def ext_pillar(minion_id,
                pillar,  # pylint: disable=W0613
@@ -77,22 +85,33 @@ def ext_pillar(minion_id,
                connection_string,
                multiple_env=False,
                environment='base',
-               prefix='',
                blob_cache_expire=30,
                blob_sync_on_update=True):
     '''
-    Execute a command and read the output as YAML
+    Execute a command and read the output as YAML.
+
+    :param container: The name of the target Azure Blob Container.
+
+    :param connection_string: The connection string to use to access the specified Azure Blob Container.
+
+    :param multiple_env: Specifies whether the pillar should interpret top level folders as pillar environments.
+        Defaults to false.
+
+    :param environment: Specifies which environment the container represents when in single environment mode. Defaults
+        to 'base' and is ignored if multiple_env is set as True.
+
+    :param blob_cache_expire: Specifies expiration time of the Azure Blob metadata cache file. Defaults to 30s.
+
+    :param blob_sync_on_update: Specifies if the cache is synced on update. Defaults to True.
+
     '''
     # normpath is needed to remove appended '/' if root is empty string.
     pillar_dir = os.path.normpath(os.path.join(_get_cache_dir(), environment, container))
 
-    if prefix:
-        pillar_dir = os.path.normpath(os.path.join(pillar_dir, prefix))
-
     if __opts__['pillar_roots'].get(environment, []) == [pillar_dir]:
         return {}
 
-    metadata = _init(connection_string, container, multiple_env, environment, prefix, blob_cache_expire)
+    metadata = _init(connection_string, container, multiple_env, environment, blob_cache_expire)
 
     if blob_sync_on_update:
         # sync the containers to the local cache
@@ -120,7 +139,7 @@ def ext_pillar(minion_id,
     return compiled_pillar
 
 
-def _init(connection_string, container, multiple_env, environment, prefix, blob_cache_expire):
+def _init(connection_string, container, multiple_env, environment, blob_cache_expire):
     '''
     .. versionadded:: Sodium
 
@@ -140,7 +159,7 @@ def _init(connection_string, container, multiple_env, environment, prefix, blob_
     :param blob_cache_expire: Specifies expiration time of the Azure Blob metadata cache file. Defaults to 30s.
 
     '''
-    cache_file = _get_containers_cache_filename(container, prefix)
+    cache_file = _get_containers_cache_filename(container)
     exp = time.time() - blob_cache_expire
 
     # Check if cache_file exists and its mtime
@@ -209,7 +228,7 @@ def _get_cached_file_name(container, saltenv, path):
     return file_path
 
 
-def _get_containers_cache_filename(container, prefix):
+def _get_containers_cache_filename(container):
     '''
     .. versionadded:: Sodium
 
@@ -222,7 +241,7 @@ def _get_containers_cache_filename(container, prefix):
     if not os.path.exists(cache_dir):
         os.makedirs(cache_dir)
 
-    return os.path.join(cache_dir, '{0}-{1}-files.cache'.format(container, prefix))
+    return os.path.join(cache_dir, '{0}-files.cache'.format(container))
 
 
 def _refresh_containers_cache_file(connection_string, container, cache_file,
@@ -269,11 +288,10 @@ def _refresh_containers_cache_file(connection_string, container, cache_file,
 
             log.debug('Raw blob attributes: %s', blob)
 
-            # Directories end with "/". Make them locally.
+            # Directories end with "/".
             if blob.name.endswith('/'):
                 # Recurse into the directory
                 _walk_blobs(prefix=blob.name)
-
                 continue
 
             if multiple_env:
@@ -358,14 +376,7 @@ def _find_file_meta(metadata, container, saltenv, path):
     '''
     env_meta = metadata[saltenv] if saltenv in metadata else {}
     container_meta = env_meta[container] if container in env_meta else {}
-
-    log.error(container_meta)
-    log.error('container_meta ^^')
-
     files_meta = list(list(filter((lambda k: 'name' in k), container_meta)))
-
-    log.error(files_meta)
-    log.error('files_meta ^^')
 
     for item_meta in files_meta:
         if 'name' in item_meta and item_meta['name'] == path:
