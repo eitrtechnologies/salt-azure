@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 '''
-Use Azure Blob as a Pillar source
+Use Azure Blob as a Pillar source.
 
 .. versionadded:: Sodium
 
@@ -9,7 +9,7 @@ Use Azure Blob as a Pillar source
 :depends:
     * `azure-storage-blob <https://pypi.org/project/azure-storage-blob/>`_ >= 12.0.0
 
-The Azure Blob external pillar can be configured with the following parameters:
+The Azure Blob ext_pillar can be configured with the following parameters:
 
 .. code-block:: yaml
 
@@ -75,7 +75,7 @@ def __virtual__():
         return (
             False,
             'The following dependency is required to use the Azure Blob ext_pillar: '
-            'Microsoft Storage Blob >= 12.0.0 '
+            'Microsoft Azure Storage Blob >= 12.0.0 '
         )
 
     return __virtualname__
@@ -361,30 +361,6 @@ def _find_files(metadata):
         ret[container] += [k for k in file_paths if not k.endswith('/')]
 
     return ret
-
-
-def _find_file_meta(metadata, container, saltenv, path):
-    '''
-    .. versionadded:: Sodium
-
-    Looks for a file's metadata in the Azure Blob Container cache file.
-
-    :param metadata: The metadata for the container files.
-
-    :param container: The name of the target Azure Blob Container.
-
-    :param saltenv: Specifies which environment the container represents.
-
-    :param path: The path of the file in the container.
-
-    '''
-    env_meta = metadata[saltenv] if saltenv in metadata else {}
-    container_meta = env_meta[container] if container in env_meta else {}
-    files_meta = list(list(filter((lambda k: 'name' in k), container_meta)))
-
-    for item_meta in files_meta:
-        if 'name' in item_meta and item_meta['name'] == path:
-            return item_meta
 
 
 def _find_file_meta(metadata, container, saltenv, path):
