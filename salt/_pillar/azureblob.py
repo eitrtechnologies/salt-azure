@@ -69,6 +69,7 @@ __virtualname__ = 'azureblob'
 # Set up logging
 log = logging.getLogger(__name__)
 
+
 def __virtual__():
     if not HAS_LIBS:
         return (
@@ -78,6 +79,7 @@ def __virtual__():
         )
 
     return __virtualname__
+
 
 def ext_pillar(minion_id,
                pillar,  # pylint: disable=W0613
@@ -112,6 +114,8 @@ def ext_pillar(minion_id,
         return {}
 
     metadata = _init(connection_string, container, multiple_env, environment, blob_cache_expire)
+
+    log.debug('Blob metadata: %s', metadata)
 
     if blob_sync_on_update:
         # sync the containers to the local cache
@@ -295,7 +299,7 @@ def _refresh_containers_cache_file(connection_string, container, cache_file,
                 continue
 
             if multiple_env:
-                saltenv = ('base' if prefix == '.' else prefix)
+                saltenv = ('base' if (not prefix or prefix == '.') else prefix[:-1])
 
             if saltenv not in metadata:
                 metadata[saltenv] = {}
