@@ -7,7 +7,9 @@ Tests for the Azure Blob Ext_Pillar
 from __future__ import absolute_import, print_function, unicode_literals
 
 import os
+import pickle
 import tempfile
+import time
 
 # Import Salt Testing libs
 from tests.support.unit import TestCase, skipIf
@@ -17,6 +19,7 @@ from tests.support.mixins import LoaderModuleMockMixin
 # Import Salt Libs
 from salt.ext import six
 import salt.pillar.azureblob as azureblob
+import salt.utils.files
 import salt.config
 import salt.loader
 
@@ -57,41 +60,80 @@ class MockBlobServiceClient:
 class AzureBlobTestCase(TestCase, LoaderModuleMockMixin):
     '''
     TestCase for salt.pillar.azureblob ext_pillar.
-
-    NOTE: In an actual use case of the Azure Blob ext_pillar, the ext_pillar will be cached to the master. However,
-        for testing purposes the ext_pillar is cached to the minion.
     '''
 
     def setup_loader_modules(self):
-        '''
-        Setup loader modules
-        '''
-        self.opts = salt.config.DEFAULT_MINION_OPTS.copy()
+        self.opts = salt.config.DEFAULT_MASTER_OPTS.copy()
         utils = salt.loader.utils(self.opts)
-        funcs = salt.loader.minion_mods(self.opts, utils=utils)
         return {
             azureblob: {
                 '__opts__': self.opts, 
                 '__utils__': utils,
-                '__salt__': funcs
             },
         }
 
-    def setUp(self):
-        '''
-        Setup
-        '''
-        TestCase.setUp(self)
-        azureblob.__virtual__()
+    #def setUp(self):
+        #self.tcache = tempfile.NamedTemporaryFile(delete=False, mode='w+')
+        # Find example contents of a .cache file to use in read_containers_cache_file
+        #self.tcache.write(self.CACHE_CONTENTS)
+        #self.tcache.close()
+
+    #def tearDown(self):
+        #os.remove(self.tcache.name)
+        #del self.tcache
 
 
-    def test__init(self):
-        self.assertEqual('true', 'true')
+    def test__init_expired(self):
+        ''' 
+        Tests the result of _init when the cache is expired.
+        '''
+        container = 'test'
+        multiple_env = False
+        environment = 'base'
+        blob_cache_expire = 0 # The cache will be expired
+        blob_client = MockBlobServiceClient()
+        cache_file = tempfile.NamedTemporaryFile()
+        
+        # Patches the _get_containers_cache_filename module so that it returns the name of the new tempfile that
+        # represents the cache file
+        with patch.object(azureblob, '_get_containers_cache_filename', MagicMock(return_value=str(cache_file.name))):
+            # Patches the from_connection_string module of the BlobServiceClient class so that a connection string does
+            # not need to be given. Additionally it returns example blob data used by the ext_pillar.
+            with patch.object(BlobServiceClient, 'from_connection_string', MagicMock(return_value=blob_client)):
+              ret = azureblob._init('', container, multiple_env, environment, blob_cache_expire)
+        self.assertEqual(ret, {'base': {'test': [{'container': None, 'name': 'test.sls', 'prefix': None,  
+                                'delimiter': '/', 'results_per_page': None, 'location_mode': None}]}})
+
+
+    def test__init_not_expired(self):
+        '''
+        Tests the result of _init when the cache is not expired.
+        '''
+        container = 'test'
+        multiple_env = False
+        environment = 'base'
+        blob_cache_expire = (time.time()) * (time.time()) # The cache will not be expired
+        metadata = {'base': {'test': [{'name': 'base/secret.sls', 'relevant': 'include.sls'},
+                                      {'name': 'blobtest.sls', 'irrelevant': 'ignore.sls'}]}}
+        cache_file = tempfile.NamedTemporaryFile()
+        # Pickles the metadata and stores it in cache_file
+        with salt.utils.files.fopen(str(cache_file), 'wb') as fp_:
+            pickle.dump(metadata, fp_)
+        
+        # Patches the _get_containers_cache_filename module so that it returns the name of the new tempfile that 
+        # represents the cache file
+        with patch.object(azureblob, '_get_containers_cache_filename', MagicMock(return_value=str(cache_file.name))):
+            # Patches the _read_containers_cache_file module so that it returns what it normally would if the new 
+            # tempfile representing the cache file was passed to it
+            plugged = azureblob._read_containers_cache_file(str(cache_file))
+            with patch.object(azureblob, '_read_containers_cache_file', MagicMock(return_value=plugged)):
+                ret = azureblob._init('', container, multiple_env, environment, blob_cache_expire)
+        self.assertEqual(ret, metadata)
 
 
     def test__get_cache_dir(self):
         ret = azureblob._get_cache_dir()
-        self.assertEqual(ret, '/var/cache/salt/minion/pillar_azureblob')
+        self.assertEqual(ret, '/var/cache/salt/master/pillar_azureblob')
 
 
     def test__get_cached_file_name(self):
@@ -99,13 +141,13 @@ class AzureBlobTestCase(TestCase, LoaderModuleMockMixin):
         saltenv = 'base'
         path = 'base/secret.sls'
         ret = azureblob._get_cached_file_name(container, saltenv, path)
-        self.assertEqual(ret, '/var/cache/salt/minion/pillar_azureblob/base/test/base/secret.sls')
+        self.assertEqual(ret, '/var/cache/salt/master/pillar_azureblob/base/test/base/secret.sls')
 
 
     def test__get_containers_cache_filename(self):
         container = 'test'
         ret = azureblob._get_containers_cache_filename(container)
-        self.assertEqual(ret, '/var/cache/salt/minion/pillar_azureblob/test-files.cache')
+        self.assertEqual(ret, '/var/cache/salt/master/pillar_azureblob/test-files.cache')
 
 
     def test__refresh_containers_cache_file(self):
@@ -118,19 +160,21 @@ class AzureBlobTestCase(TestCase, LoaderModuleMockMixin):
                                    'delimiter': '/', 'results_per_page': None, 'location_mode': None}]}})
 
 
-    # DO I NEED TO PATCH THE TEMP FILE TO THE METHOD?
-    # If I use the tempfile and use delete=False option, then where would the temp file be stored?
-    # https://stackoverflow.com/questions/8577137/how-can-i-create-a-tmp-file-in-python
-    def test__read_containers_cache_fle(self):
+    def test__read_containers_cache_file(self):
+        metadata = {'base': {'test': [{'name': 'base/secret.sls', 'relevant': 'include.sls'},
+                                      {'name': 'blobtest.sls', 'irrelevant': 'ignore.sls'}]}}
         cache_file = tempfile.NamedTemporaryFile()
-        cache_file.name = 'test-files.cache'
-        #cache_file = '/var/cache/salt/minion/pillar_azureblob/test-files.cache'
-        #ret = azureblob._read_containers_cache_file(cache_file.name)
-        self.assertEqual('true', 'true')
+        # Pickles the metadata and stores it in cache_file
+        with salt.utils.files.fopen(str(cache_file), 'wb') as fp_:
+            pickle.dump(metadata, fp_)
+        # Checks to see if _read_containers_cache_file can successfully read the pickled metadata from the cache file
+        ret = azureblob._read_containers_cache_file(str(cache_file))
+        self.assertEqual(ret, metadata)
 
 
     def test__find_files(self):
-        metadata = {'test': [{'name': 'base/secret.sls'}, {'name': 'blobtest.sls', 'irrelevant': 'ignore.sls'},                                      {'name': 'base/'}]}
+        metadata = {'test': [{'name': 'base/secret.sls'}, {'name': 'blobtest.sls', 'irrelevant': 'ignore.sls'},
+                             {'name': 'base/'}]}
         ret = azureblob._find_files(metadata)
         self.assertEqual(ret, {'test': ['base/secret.sls', 'blobtest.sls']})
 
@@ -163,7 +207,7 @@ class AzureBlobTestCase(TestCase, LoaderModuleMockMixin):
         self.assertEqual(ret, None)
 
 
-    # Can this be tested? If so, how?
+    # Figure out how to test this
     def test__get_file_from_blob(self):
         blob_client = MockBlobServiceClient()
         metadata = {}
@@ -171,10 +215,4 @@ class AzureBlobTestCase(TestCase, LoaderModuleMockMixin):
         container = 'test'
         path = ''
         cached_file_path = ''
-        '''
-        with patch.object(BlobServiceClient, 'from_connection_string', MagicMock(return_value=blob_client)):
-            ret = azureblob._get_file_from_blob('', container, cache_file.name)
-            self.assertEqual(ret, {'base': {'test': [{'container': None, 'name': 'test.sls', 'prefix': None,
-            'delimiter': '/', 'results_per_page': None, 'location_mode': None}]}})
-        '''
         self.assertEqual('true', 'true')
